@@ -2,18 +2,17 @@ import { Link } from "react-router-dom";
 
 function Sidebar() {
   return (
+    <div className="w-72 min-h-screen bg-[#0B1220] text-white p-8 border-r border-white/10">
 
-    <div className="w-64 h-screen bg-slate-900 text-white p-5">
+      <h1 className="text-3xl font-bold mb-12">
 
-      <h1 className="text-2xl font-bold mb-10">
-
-        AI Interview
+        AI Mock
 
       </h1>
 
-      <ul className="space-y-6">
+      <ul className="space-y-5">
 
-        <li>
+        <li className="bg-[#101827] p-4 rounded-2xl">
 
           <Link to="/dashboard">
 
@@ -23,31 +22,32 @@ function Sidebar() {
 
         </li>
 
-        <li>
+        <li className="hover:bg-[#101827] p-4 rounded-2xl">
 
-              <Link to="/upload">
+          <Link to="/upload">
 
-                Resume Upload
+            Resume Upload
 
-                  </Link>
+          </Link>
 
         </li>
 
-        <li>
+        <li className="hover:bg-[#101827] p-4 rounded-2xl">
 
           <Link to="/interview">
 
-             Interview
+            Interview
 
-           </Link>
+          </Link>
 
         </li>
 
-        <li>
+        <li className="hover:bg-[#101827] p-4 rounded-2xl">
 
-             
           <Link to="/results">
-          Results
+
+            Results
+
           </Link>
 
         </li>
@@ -55,7 +55,6 @@ function Sidebar() {
       </ul>
 
     </div>
-
   );
 }
 

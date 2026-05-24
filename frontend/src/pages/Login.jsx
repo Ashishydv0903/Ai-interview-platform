@@ -1,47 +1,77 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 function Login() {
-  return (
-    <div className="h-screen flex justify-center items-center bg-gray-100">
 
-      <div className="bg-white p-8 rounded-xl shadow-lg w-96">
+const navigate = useNavigate();
 
-        <h1 className="text-2xl font-bold text-center">
-          AI Interview Platform
-        </h1>
+const handleLogin = () => {
 
-        <input
-          type="email"
-          placeholder="Email"
-          className="w-full border p-2 mt-5 rounded"
-        />
+navigate("/dashboard");
 
-        <input
-          type="password"
-          placeholder="Password"
-          className="w-full border p-2 mt-3 rounded"
-        />
+};
 
-        <button className="bg-blue-600 text-white w-full p-2 mt-4 rounded">
-          Login
-        </button>
+return(
 
-        <p className="mt-4 text-center">
-          No account?
+<div className="min-h-screen bg-[#050816] flex justify-center items-center">
 
-          <Link
-            to="/register"
-            className="text-blue-600 ml-1"
-          >
-            Register
-          </Link>
+<div className="bg-[#101827] p-10 rounded-3xl w-[420px] border border-white/10">
 
-        </p>
+<h1 className="text-3xl text-white text-center font-bold">
 
-      </div>
+AI Mock Platform
 
-    </div>
-  );
+</h1>
+
+<input
+
+type="email"
+
+placeholder="Email"
+
+className="w-full mt-8 p-4 rounded-xl bg-[#1A2333] text-white outline-none"
+
+/>
+
+<input
+
+type="password"
+
+placeholder="Password"
+
+className="w-full mt-5 p-4 rounded-xl bg-[#1A2333] text-white outline-none"
+
+/>
+
+<button
+
+onClick={handleLogin}
+
+className="w-full bg-blue-600 text-white p-4 rounded-xl mt-6"
+
+>
+
+Login
+
+</button>
+
+<p className="text-center text-gray-400 mt-5">
+
+No account?
+
+<Link to="/register" className="text-blue-500 ml-2">
+
+Register
+
+</Link>
+
+</p>
+
+</div>
+
+</div>
+
+)
+
 }
 
-export default Login;
+export default Login

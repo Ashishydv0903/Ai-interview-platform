@@ -5,37 +5,26 @@ import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import Interview from "./pages/Interview";
 import Results from "./pages/Results";
+import Home from "./pages/Home";
 function App() {
   return (
     <BrowserRouter>
 
       <Routes>
 
-        <Route path="/" element={<Login />} />
+        <Route path="/" element={<Home/>}/>
 
-        <Route
-          path="/register"
-          element={<Register />}
-        />
+<Route path="/login" element={<Login/>}/>
 
-        <Route
-          path="/dashboard"
-          element={<Dashboard />}
-        />
-        <Route
-            path="/upload"
-            element={<ResumeUpload/>}
-           />
+<Route path="/register" element={<Register/>}/>
 
-           <Route
-                path="/interview"
-                element={<Interview/>}
-             />
+<Route path="/dashboard" element={<Dashboard/>}/>
 
-             <Route
-                path="/results"
-                element={<Results/>}
-             />
+<Route path="/upload" element={<ResumeUpload/>}/>
+
+<Route path="/interview" element={<Interview/>}/>
+
+<Route path="/results" element={<Results/>}/>
 
       </Routes>
 
