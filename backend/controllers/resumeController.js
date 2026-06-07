@@ -1,6 +1,6 @@
 const fs = require("fs");
 const pdfParse = require("pdf-parse");
-
+const generateQuestions = require("../services/questionGenerator");
 const uploadResume = async (req, res) => {
   try {
     const pdfBuffer = fs.readFileSync(req.file.path);
@@ -26,10 +26,21 @@ const uploadResume = async (req, res) => {
     const detectedSkills = skillList.filter(skill =>
       text.toLowerCase().includes(skill.toLowerCase())
     );
+    const questions = generateQuestions(detectedSkills);
+    console.log("========== RESUME TEXT ==========");
+console.log(text.substring(0, 500));
+console.log("================================");
 
+console.log("Detected Skills:", detectedSkills);
+const score = Math.min(
+  detectedSkills.length * 10,
+  100
+);
     res.json({
       success: true,
       skills: detectedSkills,
+       questions,
+       score
     });
 
   } catch (error) {

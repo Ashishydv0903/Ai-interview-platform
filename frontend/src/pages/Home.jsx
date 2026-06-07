@@ -51,7 +51,7 @@ AI Powered Adaptive Interview Platform
 
 <p className="text-gray-400 mt-6 text-center max-w-2xl">
 
-Upload resume, take AI interviews, analyze skills and get recommendations.
+Upload Resume, take AI interviews, analyze skills and get recommendations.
 
 </p>
 
