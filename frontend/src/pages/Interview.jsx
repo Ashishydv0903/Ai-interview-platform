@@ -1,29 +1,38 @@
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 import { useState, useEffect } from "react";
+import axios from "axios";
 
 function Interview() {
   const questions =
-    JSON.parse(
-      localStorage.getItem("selectedQuestions")
-    ) || [];
-
-  const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [answer, setAnswer] = useState("");
-  const [answers, setAnswers] = useState([]);
-  const [started, setStarted] = useState(false);
+    JSON.parse(localStorage.getItem("selectedQuestions")) || [];
 
   const duration =
     Number(localStorage.getItem("interviewDuration")) || 5;
 
+  const [started, setStarted] = useState(false);
+
   const [timeLeft, setTimeLeft] = useState(duration * 60);
+
+  const [currentQuestion, setCurrentQuestion] = useState(0);
+
+  const [answer, setAnswer] = useState("");
+
+  const [answers, setAnswers] = useState([]);
+
+  const [loading, setLoading] = useState(false);
+
+  const [evaluation, setEvaluation] = useState({
+    score: 0,
+    correctness: "Pending",
+    depth: "Pending",
+    communication: "Pending",
+    feedback: "Pending",
+  });
 
   useEffect(() => {
     if (questions.length === 0) {
-      alert(
-        "Please upload a resume and start an interview first."
-      );
-
+      alert("Please upload resume first.");
       window.location.href = "/resume-upload";
     }
   }, []);
@@ -41,8 +50,6 @@ function Interview() {
             "true"
           );
 
-          alert("Time is up!");
-
           window.location.href = "/results";
 
           return 0;
@@ -57,6 +64,7 @@ function Interview() {
 
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
+
     const secs = seconds % 60;
 
     return `${mins}:${secs
@@ -64,29 +72,35 @@ function Interview() {
       .padStart(2, "0")}`;
   };
 
-  const submitAnswer = () => {
+  const submitAnswer = async () => {
     if (!answer.trim()) {
-      alert("Please write an answer first");
+      alert("Write an answer first.");
       return;
     }
 
-    const updatedAnswers = [...answers];
-    updatedAnswers[currentQuestion] = answer;
+    try {
+      setLoading(true);
 
-    setAnswers(updatedAnswers);
+      const response = await axios.post(
+        "http://localhost:5000/api/interview/evaluate",
+        {
+          question: questions[currentQuestion],
+          answer,
+        }
+      );
 
-    localStorage.setItem(
-      "answers",
-      JSON.stringify(updatedAnswers)
-    );
+      const aiEvaluation =
+        response.data.evaluation;
 
-    alert("Answer saved successfully");
-  };
+      setEvaluation(aiEvaluation);
 
-  const nextQuestion = () => {
-    if (answer.trim()) {
       const updatedAnswers = [...answers];
-      updatedAnswers[currentQuestion] = answer;
+
+      updatedAnswers[currentQuestion] = {
+        question: questions[currentQuestion],
+        answer,
+        evaluation: aiEvaluation,
+      };
 
       setAnswers(updatedAnswers);
 
@@ -94,11 +108,32 @@ function Interview() {
         "answers",
         JSON.stringify(updatedAnswers)
       );
-    }
 
+      setLoading(false);
+
+      alert("AI Evaluation Completed");
+    } catch (err) {
+      console.error(err);
+
+      setLoading(false);
+
+      alert("AI Evaluation Failed");
+    }
+  };
+
+  const nextQuestion = () => {
     if (currentQuestion < questions.length - 1) {
       setCurrentQuestion(currentQuestion + 1);
+
       setAnswer("");
+
+      setEvaluation({
+        score: 0,
+        correctness: "Pending",
+        depth: "Pending",
+        communication: "Pending",
+        feedback: "Pending",
+      });
     } else {
       localStorage.setItem(
         "interviewCompleted",
@@ -108,8 +143,7 @@ function Interview() {
       window.location.href = "/results";
     }
   };
-
-  return (
+    return (
     <div className="flex bg-[#050816] min-h-screen">
       <Sidebar />
 
@@ -117,161 +151,231 @@ function Interview() {
         <Navbar />
 
         <div className="grid grid-cols-3 gap-6 mt-8">
-          {/* Interview Section */}
+
+          {/* Left Section */}
           <div className="col-span-2">
+
             <div className="bg-[#101827] rounded-3xl p-8 border border-white/10">
-              <div className="flex justify-between">
+
+              <div className="flex justify-between items-center">
+
                 <div>
                   <h1 className="text-3xl font-bold text-white">
-                    Interview Session
+                    AI Interview Session
                   </h1>
 
                   <p className="text-gray-400 mt-2">
-                    AI Generated Interview
+                    Gemini Powered Technical Interview
                   </p>
                 </div>
 
-                <div className="bg-blue-600 px-5 py-3 rounded-xl text-white font-semibold">
-                  {started
-                    ? formatTime(timeLeft)
-                    : "Not Started"}
+                <div className="bg-blue-600 px-6 py-3 rounded-xl text-white font-semibold">
+                  {started ? formatTime(timeLeft) : "Not Started"}
                 </div>
+
               </div>
 
-              {!started && (
-                <div className="mt-8 text-center">
+              {!started ? (
+
+                <div className="flex flex-col items-center justify-center mt-20">
+
+                  <h2 className="text-white text-2xl font-semibold">
+                    Ready to begin your interview?
+                  </h2>
+
+                  <p className="text-gray-400 mt-3">
+                    Duration : {duration} Minutes
+                  </p>
+
                   <button
                     onClick={() => setStarted(true)}
-                    className="bg-green-600 px-8 py-3 rounded-xl text-white hover:bg-green-700"
+                    className="bg-green-600 hover:bg-green-700 text-white px-10 py-4 rounded-xl mt-8"
                   >
                     Start Interview
                   </button>
-                </div>
-              )}
 
-              {started && (
-                <div className="mt-8">
-                  <div className="bg-[#1A2333] p-6 rounded-2xl">
+                </div>
+
+              ) : (
+
+                <>
+
+                  <div className="mt-8 bg-[#1A2333] rounded-2xl p-6">
+
                     <p className="text-gray-400">
-                      Question {currentQuestion + 1} /{" "}
-                      {questions.length}
+                      Question {currentQuestion + 1} / {questions.length}
                     </p>
 
-                    <h2 className="text-white text-xl mt-3">
+                    <h2 className="text-white text-xl mt-4 leading-8">
                       {questions[currentQuestion]}
                     </h2>
+
                   </div>
 
                   <textarea
                     rows="10"
                     value={answer}
-                    onChange={(e) =>
-                      setAnswer(e.target.value)
-                    }
-                    placeholder="Write answer here..."
-                    className="w-full bg-[#1A2333] text-white rounded-2xl p-5 mt-6 outline-none"
+                    onChange={(e) => setAnswer(e.target.value)}
+                    placeholder="Type your answer here..."
+                    className="w-full bg-[#1A2333] text-white rounded-2xl p-5 mt-6 outline-none resize-none"
                   />
 
                   <div className="flex gap-4 mt-6">
+
                     <button
+                      disabled={loading}
                       onClick={submitAnswer}
-                      className="bg-blue-600 px-6 py-3 rounded-xl text-white hover:bg-blue-700"
+                      className={`px-6 py-3 rounded-xl text-white ${
+                        loading
+                          ? "bg-gray-600 cursor-not-allowed"
+                          : "bg-blue-600 hover:bg-blue-700"
+                      }`}
                     >
-                      Submit Answer
+                      {loading
+                        ? "AI Evaluating..."
+                        : "Submit Answer"}
                     </button>
 
                     <button
+                      disabled={loading}
                       onClick={nextQuestion}
-                      className="bg-[#1A2333] px-6 py-3 rounded-xl text-white hover:bg-[#24314a]"
+                      className={`px-6 py-3 rounded-xl text-white ${
+                        loading
+                          ? "bg-gray-700 cursor-not-allowed"
+                          : "bg-[#1A2333] hover:bg-[#24314a]"
+                      }`}
                     >
-                      {currentQuestion ===
-                      questions.length - 1
+                      {currentQuestion === questions.length - 1
                         ? "Finish Interview"
                         : "Next Question"}
                     </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
 
-          {/* Right Sidebar */}
+                  </div>
+
+                </>
+
+              )}
+
+            </div>
+
+          </div>          {/* Right Sidebar */}
           <div>
+
             {/* Progress */}
             <div className="bg-[#101827] rounded-3xl p-8 border border-white/10">
-              <h1 className="text-white text-2xl">
+
+              <h1 className="text-white text-2xl font-bold">
                 Progress
               </h1>
 
               <div className="mt-8">
+
                 <div className="w-full h-3 bg-[#1A2333] rounded-full">
+
                   <div
-                    className="bg-blue-600 h-3 rounded-full"
+                    className="bg-blue-600 h-3 rounded-full transition-all duration-500"
                     style={{
                       width: `${
-                        questions.length > 0
+                        questions.length
                           ? ((currentQuestion + 1) /
                               questions.length) *
                             100
                           : 0
                       }%`,
                     }}
-                  ></div>
+                  />
+
                 </div>
 
                 <p className="text-gray-400 mt-4">
-                  {currentQuestion + 1} /{" "}
-                  {questions.length} Questions
+                  {currentQuestion + 1} / {questions.length} Questions
                 </p>
+
               </div>
+
             </div>
 
             {/* AI Evaluation */}
             <div className="bg-[#101827] rounded-3xl p-8 border border-white/10 mt-6">
-              <h1 className="text-white text-2xl">
+
+              <h1 className="text-white text-2xl font-bold">
                 AI Evaluation
               </h1>
 
               <div className="space-y-4 mt-6">
+
                 <div className="bg-[#1A2333] p-4 rounded-xl text-white">
-                  Correctness : Pending
+                  <span className="font-semibold">Score :</span>{" "}
+                  {evaluation.score}
                 </div>
 
                 <div className="bg-[#1A2333] p-4 rounded-xl text-white">
-                  Depth : Pending
+                  <span className="font-semibold">
+                    Correctness :
+                  </span>{" "}
+                  {evaluation.correctness}
                 </div>
 
                 <div className="bg-[#1A2333] p-4 rounded-xl text-white">
-                  Communication : Pending
+                  <span className="font-semibold">
+                    Depth :
+                  </span>{" "}
+                  {evaluation.depth}
                 </div>
+
+                <div className="bg-[#1A2333] p-4 rounded-xl text-white">
+                  <span className="font-semibold">
+                    Communication :
+                  </span>{" "}
+                  {evaluation.communication}
+                </div>
+
+                <div className="bg-[#1A2333] p-4 rounded-xl text-white">
+                  <span className="font-semibold">
+                    Feedback :
+                  </span>
+
+                  <p className="mt-2 text-gray-300">
+                    {evaluation.feedback}
+                  </p>
+                </div>
+
               </div>
+
             </div>
 
             {/* Answers Saved */}
             <div className="bg-[#101827] rounded-3xl p-8 border border-white/10 mt-6">
-              <h1 className="text-white text-2xl">
+
+              <h1 className="text-white text-2xl font-bold">
                 Answers Saved
               </h1>
 
               <p className="text-gray-400 mt-4">
-                {answers.filter(Boolean).length} /{" "}
-                {questions.length}
+                {answers.filter(Boolean).length} / {questions.length}
               </p>
+
             </div>
 
             {/* Duration */}
             <div className="bg-[#101827] rounded-3xl p-8 border border-white/10 mt-6">
-              <h1 className="text-white text-2xl">
-                Duration
+
+              <h1 className="text-white text-2xl font-bold">
+                Interview Duration
               </h1>
 
               <p className="text-gray-400 mt-4">
                 {duration} Minutes
               </p>
+
             </div>
+
           </div>
+
         </div>
+
       </div>
+
     </div>
   );
 }

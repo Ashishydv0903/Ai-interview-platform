@@ -2,190 +2,157 @@ import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 
 function Results() {
-  const skills =
-    JSON.parse(localStorage.getItem("skills")) || [];
-
-  const score =
-    localStorage.getItem("score") || 0;
-
-  const questions =
-    JSON.parse(
-      localStorage.getItem("selectedQuestions")
-    ) || [];
 
   const answers =
-    JSON.parse(
-      localStorage.getItem("answers")
-    ) || [];
+    JSON.parse(localStorage.getItem("answers")) || [];
 
-  const duration =
-    localStorage.getItem(
-      "interviewDuration"
-    ) || 0;
+  const resumeScore =
+    Number(localStorage.getItem("score")) || 0;
 
-  const answeredCount =
-    answers.filter(
-      (answer) =>
-        answer && answer.trim() !== ""
-    ).length;
+  const totalScore =
+    answers.reduce((sum, item) => {
+      return sum + (item?.evaluation?.score || 0);
+    }, 0);
 
-  const performance =
-    score >= 80
-      ? "Excellent"
-      : score >= 60
-      ? "Good"
-      : "Needs Improvement";
+  const averageScore =
+    answers.length > 0
+      ? Math.round(totalScore / answers.length)
+      : 0;
 
   return (
     <div className="flex bg-[#050816] min-h-screen">
+
       <Sidebar />
 
       <div className="flex-1 p-8">
+
         <Navbar />
 
-        <div className="grid grid-cols-3 gap-6 mt-8">
+        <div className="bg-[#101827] rounded-3xl p-10 mt-8 border border-white/10">
 
-          {/* Main Results */}
-          <div className="col-span-2">
-            <div className="bg-[#101827] rounded-3xl p-8 border border-white/10">
+          <h1 className="text-4xl font-bold text-white">
+            Interview Results
+          </h1>
 
-              <h1 className="text-4xl font-bold text-white">
-                Interview Results
-              </h1>
+          <div className="grid grid-cols-3 gap-6 mt-8">
 
-              <p className="text-gray-400 mt-2">
-                AI Mock Interview Summary
+            <div className="bg-[#1A2333] p-6 rounded-2xl">
+
+              <h2 className="text-gray-400">
+                Resume Score
+              </h2>
+
+              <p className="text-green-400 text-5xl mt-3">
+                {resumeScore}%
               </p>
 
-              {/* Score */}
-              <div className="mt-8 bg-[#1A2333] rounded-2xl p-6">
-                <h2 className="text-white text-2xl">
-                  Resume Score
-                </h2>
-
-                <p className="text-green-400 text-5xl font-bold mt-4">
-                  {score}%
-                </p>
-              </div>
-
-              {/* Performance */}
-              <div className="mt-6 bg-[#1A2333] rounded-2xl p-6">
-                <h2 className="text-white text-2xl">
-                  Overall Performance
-                </h2>
-
-                <p className="text-blue-400 text-3xl mt-4 font-semibold">
-                  {performance}
-                </p>
-              </div>
-
-              {/* Questions & Answers */}
-              <div className="mt-6 bg-[#1A2333] rounded-2xl p-6">
-                <h2 className="text-white text-2xl mb-6">
-                  Interview Responses
-                </h2>
-
-                {questions.map((question, index) => (
-                  <div
-                    key={index}
-                    className="mb-6 border-b border-white/10 pb-4"
-                  >
-                    <p className="text-blue-400 font-semibold">
-                      Q{index + 1}. {question}
-                    </p>
-
-                    <p className="text-gray-300 mt-2">
-                      {answers[index]
-                        ? answers[index]
-                        : "No answer submitted"}
-                    </p>
-                  </div>
-                ))}
-              </div>
             </div>
+
+            <div className="bg-[#1A2333] p-6 rounded-2xl">
+
+              <h2 className="text-gray-400">
+                Interview Score
+              </h2>
+
+              <p className="text-blue-400 text-5xl mt-3">
+                {averageScore}%
+              </p>
+
+            </div>
+
+            <div className="bg-[#1A2333] p-6 rounded-2xl">
+
+              <h2 className="text-gray-400">
+                Questions Answered
+              </h2>
+
+              <p className="text-white text-5xl mt-3">
+                {answers.length}
+              </p>
+
+            </div>
+
           </div>
 
-          {/* Right Panel */}
-          <div>
+          <div className="mt-10">
 
-            {/* Interview Stats */}
-            <div className="bg-[#101827] rounded-3xl p-8 border border-white/10">
-              <h1 className="text-white text-2xl">
-                Interview Stats
-              </h1>
+            <h2 className="text-3xl text-white font-bold mb-6">
+              AI Evaluation
+            </h2>
 
-              <div className="space-y-4 mt-6">
+            {answers.map((item, index) => (
 
-                <div className="bg-[#1A2333] p-4 rounded-xl text-white">
-                  Duration : {duration} Minutes
+              <div
+                key={index}
+                className="bg-[#1A2333] rounded-2xl p-6 mb-6"
+              >
+
+                <h3 className="text-xl text-blue-400 font-semibold">
+                  Question {index + 1}
+                </h3>
+
+                <p className="text-white mt-3">
+                  {item.question}
+                </p>
+
+                <h4 className="text-green-400 mt-6 font-semibold">
+                  Your Answer
+                </h4>
+
+                <p className="text-gray-300 mt-2">
+                  {item.answer}
+                </p>
+
+                <div className="grid grid-cols-2 gap-4 mt-6">
+
+                  <div className="bg-[#101827] p-4 rounded-xl text-white">
+                    Score :
+                    {" "}
+                    {item.evaluation?.score}
+                  </div>
+
+                  <div className="bg-[#101827] p-4 rounded-xl text-white">
+                    Correctness :
+                    {" "}
+                    {item.evaluation?.correctness}
+                  </div>
+
+                  <div className="bg-[#101827] p-4 rounded-xl text-white">
+                    Depth :
+                    {" "}
+                    {item.evaluation?.depth}
+                  </div>
+
+                  <div className="bg-[#101827] p-4 rounded-xl text-white">
+                    Communication :
+                    {" "}
+                    {item.evaluation?.communication}
+                  </div>
+
                 </div>
 
-                <div className="bg-[#1A2333] p-4 rounded-xl text-white">
-                  Questions : {questions.length}
-                </div>
+                <div className="bg-[#101827] rounded-xl p-4 mt-5">
 
-                <div className="bg-[#1A2333] p-4 rounded-xl text-white">
-                  Answered : {answeredCount}
-                </div>
+                  <h4 className="text-yellow-400 font-semibold">
+                    AI Feedback
+                  </h4>
 
-              </div>
-            </div>
-
-            {/* Skills */}
-            <div className="bg-[#101827] rounded-3xl p-8 border border-white/10 mt-6">
-
-              <h1 className="text-white text-2xl">
-                Detected Skills
-              </h1>
-
-              <div className="space-y-3 mt-6">
-
-                {skills.length === 0 ? (
-                  <p className="text-gray-400">
-                    No skills found
+                  <p className="text-gray-300 mt-2">
+                    {item.evaluation?.feedback}
                   </p>
-                ) : (
-                  skills.map((skill, index) => (
-                    <div
-                      key={index}
-                      className="bg-[#1A2333] p-3 rounded-xl text-white"
-                    >
-                      {skill}
-                    </div>
-                  ))
-                )}
 
-              </div>
-            </div>
-
-            {/* Recommendations */}
-            <div className="bg-[#101827] rounded-3xl p-8 border border-white/10 mt-6">
-
-              <h1 className="text-white text-2xl">
-                Recommendations
-              </h1>
-
-              <div className="space-y-4 mt-6">
-
-                <div className="bg-[#1A2333] p-4 rounded-xl text-white">
-                  Practice more DSA problems.
-                </div>
-
-                <div className="bg-[#1A2333] p-4 rounded-xl text-white">
-                  Improve project explanations.
-                </div>
-
-                <div className="bg-[#1A2333] p-4 rounded-xl text-white">
-                  Strengthen communication skills.
                 </div>
 
               </div>
-            </div>
+
+            ))}
 
           </div>
 
         </div>
+
       </div>
+
     </div>
   );
 }

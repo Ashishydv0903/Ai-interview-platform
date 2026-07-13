@@ -1,7 +1,16 @@
+const dotenv = require("dotenv");
+dotenv.config();
+
 const express = require("express");
 const cors = require("cors");
 
+// const connectDB = require("./config/db");
+
 const resumeRoutes = require("./routes/resumeRoutes");
+
+const interviewRoutes = require("./routes/interviewRoutes");
+
+// connectDB();
 
 const app = express();
 
@@ -9,13 +18,15 @@ app.use(cors());
 app.use(express.json());
 
 app.use("/api/resume", resumeRoutes);
-
+app.use("/api/interview", interviewRoutes);
 app.get("/", (req, res) => {
   res.json({
     message: "Backend running",
   });
 });
 
-app.listen(5000, () => {
-  console.log("Server started on port 5000");
+const PORT = process.env.PORT || 5000;
+
+app.listen(PORT, () => {
+  console.log(`Server started on port ${PORT}`);
 });
