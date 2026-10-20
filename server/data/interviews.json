@@ -1,0 +1,849 @@
+[
+  {
+    "id": "bb7085fd-45ae-4984-a526-609268d86234",
+    "sessionId": "bb7085fd-45ae-4984-a526-609268d86234",
+    "userId": "user-0520f053",
+    "candidateName": "ndsjnsjx",
+    "targetRole": "Aptitude Assessment",
+    "candidateDomain": "Aptitude & Reasoning",
+    "customSubject": null,
+    "candidateSkills": [
+      "React",
+      "Node.js",
+      "JavaScript",
+      "REST APIs",
+      "MongoDB"
+    ],
+    "currentDifficulty": "Hard",
+    "totalQuestionsPlanned": 5,
+    "timeLimitMinutes": 10,
+    "evaluations": [
+      {
+        "questionId": "apt_01",
+        "questionText": "If all Bloops are Razzies and all Razzies are Lazzies, are all Bloops definitely Lazzies? Explain your logical deduction step-by-step.",
+        "topic": "Logical Deduction & Syllogisms",
+        "difficulty": "Easy",
+        "userAnswer": "sxsxsasdnmd",
+        "codeSnippet": null,
+        "timeSpentSeconds": 12,
+        "idealAnswer": "Yes, all Bloops are definitely Lazzies. By transitive relation in categorical logic: Set A (Bloops) is a subset of Set B (Razzies), and Set B (Razzies) is a subset of Set C (Lazzies). Therefore, any element in Set A must also be contained within Set C (A ⊆ B ⊆ C implies A ⊆ C).",
+        "expectedConcepts": [
+          "Syllogism",
+          "Deductive Reasoning",
+          "Transitive Relation",
+          "Logical Certainty",
+          "Premise"
+        ],
+        "evaluation": {
+          "score": 8,
+          "matchedConcepts": [],
+          "missingConcepts": [
+            "Syllogism",
+            "Deductive Reasoning",
+            "Transitive Relation",
+            "Logical Certainty",
+            "Premise"
+          ],
+          "clarityScore": 100,
+          "depthScore": 25,
+          "confidenceScore": 36,
+          "fillerCount": 0,
+          "rationale": "Good attempt, but the explanation remained surface-level. You mentioned: a few basic ideas. Try expanding on: Syllogism, Deductive Reasoning, Transitive Relation, Logical Certainty, Premise with concrete examples.",
+          "highlightTag": "NEEDS_IMPROVEMENT",
+          "breakdown": [
+            {
+              "metric": "Core Concept Coverage",
+              "score": 0,
+              "weight": "50%",
+              "description": "Covered 0 out of 5 essential concepts."
+            },
+            {
+              "metric": "Depth & Technical Reasoning",
+              "score": 25,
+              "weight": "30%",
+              "description": "1 words evaluated for technical substance & reasoning."
+            },
+            {
+              "metric": "Articulation & Delivery",
+              "score": 100,
+              "weight": "20%",
+              "description": "Low filler words (0) with clear, confident sentence structure."
+            }
+          ]
+        }
+      },
+      {
+        "questionId": "apt_05",
+        "questionText": "An item originally priced at $200 is discounted by 20%, and then an additional 10% discount is applied to the sale price. What is the final price?",
+        "topic": "Percentages & Profit-Loss",
+        "difficulty": "Easy",
+        "userAnswer": "154",
+        "codeSnippet": null,
+        "timeSpentSeconds": 42,
+        "idealAnswer": "Step 1: First discount is 20% off $200. Discount = $40; new price = $160. Step 2: Second discount is 10% off the new price ($160). Discount = $16; final price = $160 - $16 = $144. (Note: Successive discounts of 20% and 10% equal an overall discount of 28%, not 30%).",
+        "expectedConcepts": [
+          "Successive Discounts",
+          "$144",
+          "Percentage Calculation",
+          "Net Price"
+        ],
+        "evaluation": {
+          "score": 8,
+          "matchedConcepts": [],
+          "missingConcepts": [
+            "Successive Discounts",
+            "$144",
+            "Percentage Calculation",
+            "Net Price"
+          ],
+          "clarityScore": 100,
+          "depthScore": 25,
+          "confidenceScore": 36,
+          "fillerCount": 0,
+          "rationale": "Good attempt, but the explanation remained surface-level. You mentioned: a few basic ideas. Try expanding on: Successive Discounts, $144, Percentage Calculation, Net Price with concrete examples.",
+          "highlightTag": "NEEDS_IMPROVEMENT",
+          "breakdown": [
+            {
+              "metric": "Core Concept Coverage",
+              "score": 0,
+              "weight": "50%",
+              "description": "Covered 0 out of 4 essential concepts."
+            },
+            {
+              "metric": "Depth & Technical Reasoning",
+              "score": 25,
+              "weight": "30%",
+              "description": "1 words evaluated for technical substance & reasoning."
+            },
+            {
+              "metric": "Articulation & Delivery",
+              "score": 100,
+              "weight": "20%",
+              "description": "Low filler words (0) with clear, confident sentence structure."
+            }
+          ]
+        }
+      },
+      {
+        "questionId": "biz_01",
+        "questionText": "What are the primary differences between Customer Acquisition Cost (CAC) and Lifetime Value (LTV)? Why is the LTV:CAC ratio crucial?",
+        "topic": "Product Metrics & Unit Economics",
+        "difficulty": "Easy",
+        "userAnswer": "ndswjdnjwx",
+        "codeSnippet": null,
+        "timeSpentSeconds": 49,
+        "idealAnswer": "CAC measures the total sales and marketing spend required to acquire a single paying customer. LTV estimates the total net revenue a customer generates throughout their entire relationship. An LTV:CAC ratio of 3:1 is standard for healthy SaaS businesses. Below 1:1 means the company loses money on every acquisition; excessively high ratios (e.g. 7:1) indicate underinvestment in growth.",
+        "expectedConcepts": [
+          "CAC",
+          "LTV",
+          "Unit Economics",
+          "Payback Period",
+          "Retention",
+          "LTV:CAC Ratio"
+        ],
+        "evaluation": {
+          "score": 8,
+          "matchedConcepts": [],
+          "missingConcepts": [
+            "CAC",
+            "LTV",
+            "Unit Economics",
+            "Payback Period",
+            "Retention",
+            "LTV:CAC Ratio"
+          ],
+          "clarityScore": 100,
+          "depthScore": 25,
+          "confidenceScore": 36,
+          "fillerCount": 0,
+          "rationale": "Good attempt, but the explanation remained surface-level. You mentioned: a few basic ideas. Try expanding on: CAC, LTV, Unit Economics, Payback Period, Retention, LTV:CAC Ratio with concrete examples.",
+          "highlightTag": "NEEDS_IMPROVEMENT",
+          "breakdown": [
+            {
+              "metric": "Core Concept Coverage",
+              "score": 0,
+              "weight": "50%",
+              "description": "Covered 0 out of 6 essential concepts."
+            },
+            {
+              "metric": "Depth & Technical Reasoning",
+              "score": 25,
+              "weight": "30%",
+              "description": "1 words evaluated for technical substance & reasoning."
+            },
+            {
+              "metric": "Articulation & Delivery",
+              "score": 100,
+              "weight": "20%",
+              "description": "Low filler words (0) with clear, confident sentence structure."
+            }
+          ]
+        }
+      },
+      {
+        "questionId": "apt_02",
+        "questionText": "A train running at 72 km/h passes a pole in 9 seconds. What is the length of the train in meters? Show your step-by-step calculation.",
+        "topic": "Speed, Distance & Time",
+        "difficulty": "Medium",
+        "userAnswer": "180",
+        "codeSnippet": null,
+        "timeSpentSeconds": 71,
+        "idealAnswer": "Step 1: Convert speed from km/h to m/s: 72 * (5/18) = 20 m/s. Step 2: Use Distance = Speed * Time. To pass a stationary pole, the train must cover its entire length. Distance = 20 m/s * 9 seconds = 180 meters. Therefore, the length of the train is 180 meters.",
+        "expectedConcepts": [
+          "Speed Conversion",
+          "Distance Formula",
+          "20 m/s",
+          "180 Meters",
+          "Time and Distance"
+        ],
+        "evaluation": {
+          "score": 8,
+          "matchedConcepts": [],
+          "missingConcepts": [
+            "Speed Conversion",
+            "Distance Formula",
+            "20 m/s",
+            "180 Meters",
+            "Time and Distance"
+          ],
+          "clarityScore": 100,
+          "depthScore": 25,
+          "confidenceScore": 36,
+          "fillerCount": 0,
+          "rationale": "Good attempt, but the explanation remained surface-level. You mentioned: a few basic ideas. Try expanding on: Speed Conversion, Distance Formula, 20 m/s, 180 Meters, Time and Distance with concrete examples.",
+          "highlightTag": "NEEDS_IMPROVEMENT",
+          "breakdown": [
+            {
+              "metric": "Core Concept Coverage",
+              "score": 0,
+              "weight": "50%",
+              "description": "Covered 0 out of 5 essential concepts."
+            },
+            {
+              "metric": "Depth & Technical Reasoning",
+              "score": 25,
+              "weight": "30%",
+              "description": "1 words evaluated for technical substance & reasoning."
+            },
+            {
+              "metric": "Articulation & Delivery",
+              "score": 100,
+              "weight": "20%",
+              "description": "Low filler words (0) with clear, confident sentence structure."
+            }
+          ]
+        }
+      },
+      {
+        "questionId": "apt_03",
+        "questionText": "What is the probability of drawing either an Ace or a King from a standard deck of 52 playing cards in a single draw?",
+        "topic": "Probability & Combinatorics",
+        "difficulty": "Hard",
+        "userAnswer": "1/4",
+        "codeSnippet": null,
+        "timeSpentSeconds": 84,
+        "idealAnswer": "A standard deck has 52 cards. There are 4 Aces and 4 Kings. Since drawing an Ace and drawing a King are mutually exclusive events, total favorable outcomes = 4 + 4 = 8. Probability = Favorable Outcomes / Total Sample Space = 8 / 52. Simplifying by dividing numerator and denominator by 4 yields 2/13 (approx 15.38%).",
+        "expectedConcepts": [
+          "Probability",
+          "Favorable Outcomes",
+          "Sample Space",
+          "8/52",
+          "2/13",
+          "Mutually Exclusive"
+        ],
+        "evaluation": {
+          "score": 8,
+          "matchedConcepts": [],
+          "missingConcepts": [
+            "Probability",
+            "Favorable Outcomes",
+            "Sample Space",
+            "8/52",
+            "2/13",
+            "Mutually Exclusive"
+          ],
+          "clarityScore": 100,
+          "depthScore": 25,
+          "confidenceScore": 36,
+          "fillerCount": 0,
+          "rationale": "Good attempt, but the explanation remained surface-level. You mentioned: a few basic ideas. Try expanding on: Probability, Favorable Outcomes, Sample Space, 8/52, 2/13, Mutually Exclusive with concrete examples.",
+          "highlightTag": "NEEDS_IMPROVEMENT",
+          "breakdown": [
+            {
+              "metric": "Core Concept Coverage",
+              "score": 0,
+              "weight": "50%",
+              "description": "Covered 0 out of 6 essential concepts."
+            },
+            {
+              "metric": "Depth & Technical Reasoning",
+              "score": 25,
+              "weight": "30%",
+              "description": "1 words evaluated for technical substance & reasoning."
+            },
+            {
+              "metric": "Articulation & Delivery",
+              "score": 100,
+              "weight": "20%",
+              "description": "Low filler words (0) with clear, confident sentence structure."
+            }
+          ]
+        }
+      }
+    ],
+    "status": "COMPLETED",
+    "createdAt": "2026-10-18T12:00:05.550Z",
+    "currentQuestion": null,
+    "updatedAt": "2026-10-18T12:01:31.219Z",
+    "completedAt": "2026-10-18T12:01:31.218Z",
+    "finalReport": {
+      "overallScore": 32,
+      "readinessTier": "Needs Core Revision",
+      "humanSummary": "Good initial practice session! You have the basics down, but several technical questions required more specific terminology and depth. Follow the personalized 7-day revision roadmap below to rapidly build confidence in those target areas.",
+      "strengths": [
+        "Clear, confident articulation with structured pacing"
+      ],
+      "improvementAreas": [
+        "Elaborate more on architectural trade-offs (e.g. caching, latency, scalability)",
+        "Review key domain concepts: Syllogism, Deductive Reasoning, Transitive Relation"
+      ],
+      "skillsBreakdown": [
+        {
+          "subject": "Core Technical Knowledge",
+          "score": 8,
+          "benchmark": 80,
+          "status": "Needs Review",
+          "mentorFeedback": "Revisit core documentation and fundamental syntax patterns."
+        },
+        {
+          "subject": "Problem Solving & Logic",
+          "score": 25,
+          "benchmark": 75,
+          "status": "Needs Review",
+          "mentorFeedback": "Good problem-solving instinct; practice breaking down complex edge cases aloud."
+        },
+        {
+          "subject": "Architecture & Design",
+          "score": 17,
+          "benchmark": 75,
+          "status": "Needs Review",
+          "mentorFeedback": "Focus on discussing scalability, caching, and state management trade-offs."
+        },
+        {
+          "subject": "Code Quality & Precision",
+          "score": 8,
+          "benchmark": 80,
+          "status": "Needs Review",
+          "mentorFeedback": "Solid structure; remember to explicitly mention error handling and validation."
+        },
+        {
+          "subject": "Communication & Articulation",
+          "score": 100,
+          "benchmark": 85,
+          "status": "Mastered",
+          "mentorFeedback": "Spoke concisely with minimal filler words and clear pacing."
+        }
+      ],
+      "radarData": [
+        {
+          "subject": "Core Technical Knowledge",
+          "Candidate": 8,
+          "TargetBenchmark": 80,
+          "explanation": "Revisit core documentation and fundamental syntax patterns."
+        },
+        {
+          "subject": "Problem Solving & Logic",
+          "Candidate": 25,
+          "TargetBenchmark": 75,
+          "explanation": "Good problem-solving instinct; practice breaking down complex edge cases aloud."
+        },
+        {
+          "subject": "Architecture & Design",
+          "Candidate": 17,
+          "TargetBenchmark": 75,
+          "explanation": "Focus on discussing scalability, caching, and state management trade-offs."
+        },
+        {
+          "subject": "Code Quality & Precision",
+          "Candidate": 8,
+          "TargetBenchmark": 80,
+          "explanation": "Solid structure; remember to explicitly mention error handling and validation."
+        },
+        {
+          "subject": "Communication & Articulation",
+          "Candidate": 100,
+          "TargetBenchmark": 85,
+          "explanation": "Spoke concisely with minimal filler words and clear pacing."
+        }
+      ],
+      "missingConcepts": [
+        "Syllogism",
+        "Deductive Reasoning",
+        "Transitive Relation",
+        "Logical Certainty",
+        "Premise"
+      ],
+      "learningRoadmap": [
+        {
+          "step": 1,
+          "topic": "Syllogism",
+          "priority": "High Priority",
+          "actionPlan": "Spend 30 minutes reading the official documentation for Syllogism. Implement a short code example to cement muscle memory.",
+          "estimatedHours": "1 Hour",
+          "resourceUrl": "https://developer.mozilla.org/en-US/search?q=Syllogism"
+        },
+        {
+          "step": 2,
+          "topic": "Deductive Reasoning",
+          "priority": "Recommended",
+          "actionPlan": "Spend 30 minutes reading the official documentation for Deductive Reasoning. Implement a short code example to cement muscle memory.",
+          "estimatedHours": "2 Hour",
+          "resourceUrl": "https://developer.mozilla.org/en-US/search?q=Deductive%20Reasoning"
+        },
+        {
+          "step": 3,
+          "topic": "Transitive Relation",
+          "priority": "Good to Know",
+          "actionPlan": "Spend 30 minutes reading the official documentation for Transitive Relation. Implement a short code example to cement muscle memory.",
+          "estimatedHours": "1 Hour",
+          "resourceUrl": "https://developer.mozilla.org/en-US/search?q=Transitive%20Relation"
+        },
+        {
+          "step": 4,
+          "topic": "Logical Certainty",
+          "priority": "Good to Know",
+          "actionPlan": "Spend 30 minutes reading the official documentation for Logical Certainty. Implement a short code example to cement muscle memory.",
+          "estimatedHours": "2 Hour",
+          "resourceUrl": "https://developer.mozilla.org/en-US/search?q=Logical%20Certainty"
+        },
+        {
+          "step": 5,
+          "topic": "Premise",
+          "priority": "Good to Know",
+          "actionPlan": "Spend 30 minutes reading the official documentation for Premise. Implement a short code example to cement muscle memory.",
+          "estimatedHours": "1 Hour",
+          "resourceUrl": "https://developer.mozilla.org/en-US/search?q=Premise"
+        }
+      ]
+    }
+  },
+  {
+    "id": "a51e1f9d-2b8e-4f75-937c-6afbf46c34e1",
+    "sessionId": "a51e1f9d-2b8e-4f75-937c-6afbf46c34e1",
+    "userId": "6ad4bbe0e5c498a44be618aa",
+    "candidateName": "Ashish",
+    "targetRole": "Frontend Engineer",
+    "candidateDomain": "Frontend",
+    "customSubject": null,
+    "candidateSkills": [
+      "React",
+      "React.js",
+      "JavaScript",
+      "HTML",
+      "CSS",
+      "Node.js",
+      "Express",
+      "Java",
+      "MongoDB",
+      "SQL",
+      "Git",
+      "NLP"
+    ],
+    "currentDifficulty": "Easy",
+    "totalQuestionsPlanned": 5,
+    "timeLimitMinutes": 15,
+    "evaluations": [],
+    "status": "IN_PROGRESS",
+    "createdAt": "2026-10-18T12:31:52.814Z",
+    "currentQuestion": {
+      "id": "fe_01",
+      "domain": "Frontend",
+      "role": "Frontend Engineer",
+      "topic": "React & Virtual DOM",
+      "difficulty": "Easy",
+      "question": "Explain the Virtual DOM in React and how reconciliation works when state updates occur.",
+      "hints": [
+        "Mention shadow copy of DOM, diffing algorithm, and batch updates."
+      ],
+      "expectedConcepts": [
+        "Virtual DOM",
+        "Reconciliation",
+        "Diffing Algorithm",
+        "State",
+        "DOM Manipulation",
+        "Batching"
+      ],
+      "idealAnswer": "The Virtual DOM (VDOM) is an in-memory, lightweight JavaScript representation of the actual DOM. When component state changes, React creates a new VDOM tree and compares it to the previous tree using an O(n) heuristic diffing algorithm (Reconciliation). React computes the minimal set of changes (diffs) and batches updates to the real DOM, avoiding expensive layout reflows and browser repaints."
+    },
+    "updatedAt": "2026-10-18T12:31:53.597Z"
+  },
+  {
+    "id": "38dfeea3-8686-43dd-a823-b4faffc38676",
+    "sessionId": "38dfeea3-8686-43dd-a823-b4faffc38676",
+    "userId": "6ad4bbe0e5c498a44be618aa",
+    "candidateName": "Ashish",
+    "targetRole": "Frontend Engineer",
+    "candidateDomain": "Frontend",
+    "customSubject": null,
+    "candidateSkills": [
+      "React",
+      "Node.js",
+      "JavaScript",
+      "REST APIs",
+      "MongoDB"
+    ],
+    "currentDifficulty": "Easy",
+    "totalQuestionsPlanned": 5,
+    "timeLimitMinutes": 15,
+    "evaluations": [],
+    "status": "IN_PROGRESS",
+    "createdAt": "2026-10-18T12:36:46.771Z",
+    "geminiQuestions": [
+      {
+        "question": "Explain the purpose and basic usage of `useState` and `useEffect` hooks in React functional components. Provide a simple scenario for each where they would be necessary.",
+        "topic": "React, JavaScript",
+        "difficulty": "Easy",
+        "expectedConcepts": [
+          "useState",
+          "useEffect",
+          "Functional Components",
+          "State Management",
+          "Side Effects",
+          "Dependency Array",
+          "Component Lifecycle"
+        ],
+        "hints": [
+          "Think about how state changes trigger UI updates and how to perform actions after a component renders or when dependencies change.",
+          "Consider a counter or data fetching as simple scenarios."
+        ]
+      },
+      {
+        "question": "Describe how you would implement data fetching from a REST API in a React functional component, handling loading states, error states, and successful data display. What considerations would you have for re-fetching data?",
+        "topic": "React, REST APIs, JavaScript",
+        "difficulty": "Medium",
+        "expectedConcepts": [
+          "fetch API",
+          "axios",
+          "async/await",
+          "Promises",
+          "useState",
+          "useEffect",
+          "Conditional Rendering",
+          "Error Handling",
+          "Loading Indicators",
+          "Data Re-fetching"
+        ],
+        "hints": [
+          "Consider the different phases of an asynchronous operation (pending, fulfilled, rejected) and how to represent them in the UI.",
+          "Think about how to prevent unnecessary network requests or trigger updates based on user actions or prop changes."
+        ]
+      },
+      {
+        "question": "You are building a frontend application that interacts with a RESTful API. Describe strategies for handling API errors (e.g., 401 Unauthorized, 404 Not Found, 500 Internal Server Error) gracefully on the client-side. How would you communicate these errors to the user and potentially re-authenticate or retry?",
+        "topic": "REST APIs, React, JavaScript, Error Handling, Frontend Architecture",
+        "difficulty": "Medium-Hard",
+        "expectedConcepts": [
+          "HTTP Status Codes",
+          "Global Error Handling",
+          "Error Boundaries (React)",
+          "User Feedback (Toasts, Alerts, Modals)",
+          "Redirection",
+          "Retry Mechanisms",
+          "Token Refresh (conceptual)",
+          "Logging"
+        ],
+        "hints": [
+          "Think about both generic and specific error responses and how to provide a good user experience.",
+          "Consider different scopes of error handling: per-request, per-component, and application-wide."
+        ]
+      },
+      {
+        "question": "Design a client-side authentication flow for a React application interacting with a Node.js/Express backend using JWTs (JSON Web Tokens). Focus on how the frontend handles login, maintaining user session, protecting routes, and logging out securely. Assume the backend handles token issuance and validation.",
+        "topic": "React, REST APIs, JavaScript, Security, Frontend Architecture, Node.js (conceptual backend interaction)",
+        "difficulty": "Hard",
+        "expectedConcepts": [
+          "JWT Structure (conceptual)",
+          "localStorage/sessionStorage vs HttpOnly Cookies",
+          "State Management (Context API/Redux/useState) for Auth Status",
+          "Protected Routes (React Router)",
+          "API Request Headers (Authorization: Bearer)",
+          "Token Expiration & Refresh (conceptual)",
+          "Logout Mechanism (token deletion/invalidation)",
+          "Client-side vs Server-side security concerns"
+        ],
+        "hints": [
+          "Consider where the token is stored, how it's sent with subsequent requests, and what happens when it expires.",
+          "How do you prevent unauthorized access to specific parts of your application's UI or data?"
+        ]
+      }
+    ],
+    "currentQuestion": {
+      "id": "gemini_1",
+      "domain": "Frontend",
+      "role": "Frontend Engineer",
+      "topic": "React, JavaScript",
+      "difficulty": "Easy",
+      "question": "Explain the purpose and basic usage of `useState` and `useEffect` hooks in React functional components. Provide a simple scenario for each where they would be necessary.",
+      "expectedConcepts": [
+        "useState",
+        "useEffect",
+        "Functional Components",
+        "State Management",
+        "Side Effects",
+        "Dependency Array",
+        "Component Lifecycle"
+      ],
+      "hints": [
+        "Think about how state changes trigger UI updates and how to perform actions after a component renders or when dependencies change.",
+        "Consider a counter or data fetching as simple scenarios."
+      ],
+      "idealAnswer": "A comprehensive model response covers: useState, useEffect, Functional Components, State Management, Side Effects, Dependency Array, Component Lifecycle."
+    },
+    "updatedAt": "2026-10-18T12:36:59.655Z"
+  },
+  {
+    "id": "cfc5207a-0fa7-425a-b93e-737d85d928ef",
+    "sessionId": "cfc5207a-0fa7-425a-b93e-737d85d928ef",
+    "userId": "6ad4bbe0e5c498a44be618aa",
+    "candidateName": "Ashish",
+    "targetRole": "Frontend Engineer",
+    "candidateDomain": "Frontend",
+    "customSubject": null,
+    "candidateSkills": [
+      "React",
+      "Node.js",
+      "JavaScript",
+      "REST APIs",
+      "MongoDB"
+    ],
+    "currentDifficulty": "Easy",
+    "totalQuestionsPlanned": 3,
+    "timeLimitMinutes": 5,
+    "evaluations": [],
+    "status": "IN_PROGRESS",
+    "createdAt": "2026-10-18T12:43:41.305Z",
+    "geminiQuestions": [
+      {
+        "question": "Explain how you would manage state in a React functional component, and provide a simple example of using `useState`.",
+        "topic": "React",
+        "difficulty": "Easy",
+        "expectedConcepts": [
+          "useState Hook",
+          "Functional Components",
+          "State Update Mechanism",
+          "Re-renders",
+          "Immutability"
+        ],
+        "hints": [
+          "Consider how data changes and updates the UI.",
+          "How does React know when to re-render a component?",
+          "Think about updating primitive vs. object states."
+        ]
+      },
+      {
+        "question": "Describe the process of fetching data from a REST API in a React application using modern JavaScript. How would you handle potential network errors or different HTTP status codes, and what considerations are there for displaying loading states?",
+        "topic": "REST APIs",
+        "difficulty": "Medium",
+        "expectedConcepts": [
+          "fetch API",
+          "axios",
+          "Promises",
+          "async/await",
+          "HTTP Status Codes",
+          "Error Handling",
+          "useEffect Hook",
+          "Loading States",
+          "CORS (conceptual)"
+        ],
+        "hints": [
+          "Think about browser-side API calls and asynchronicity.",
+          "What common network problems might occur?",
+          "How do you provide feedback to the user while data is being fetched?"
+        ]
+      },
+      {
+        "question": "Your React application is experiencing slow initial load times, especially for pages displaying large datasets fetched from a MongoDB backend via a Node.js API. Propose architectural and code-level solutions to improve the initial loading performance, considering both frontend and potential backend interactions.",
+        "topic": "React",
+        "difficulty": "Hard",
+        "expectedConcepts": [
+          "Server-Side Rendering (SSR)",
+          "Static Site Generation (SSG)",
+          "Code Splitting",
+          "Lazy Loading",
+          "Data Caching (Client-side, e.g., React Query/SWR)",
+          "Pagination/Infinite Scrolling",
+          "API Optimization (e.g., field selection, aggregation)",
+          "Bundle Optimization",
+          "CDN Integration",
+          "Database Indexing (conceptual for frontend understanding)",
+          "Client-side vs Server-side data fetching"
+        ],
+        "hints": [
+          "How can you render content before the JavaScript bundle fully loads?",
+          "Think about reducing the initial amount of data transferred and processed.",
+          "Consider build-time vs. run-time optimizations and different data fetching strategies."
+        ]
+      },
+      {
+        "question": "You need to implement a feature in your React application that requires real-time updates, such as a live chat or a collaborative editing tool. How would you achieve this, considering standard REST APIs typically follow a request/response model? Discuss the technologies and architectural patterns involved from both a frontend and conceptual backend perspective.",
+        "topic": "WebSockets",
+        "difficulty": "Hard",
+        "expectedConcepts": [
+          "WebSockets",
+          "Server-Sent Events (SSE)",
+          "Polling",
+          "Long Polling",
+          "Socket.IO",
+          "Context API/Redux/Zustand for state management",
+          "Backend implementation (e.g., using `ws` library or Socket.IO in Node.js)",
+          "Client-side library integration (e.g., `socket.io-client`)",
+          "Persistent Connections"
+        ],
+        "hints": [
+          "Think about how the server can initiate communication with the client.",
+          "What are the trade-offs of different real-time communication approaches?",
+          "How would you integrate this into your React component structure?"
+        ]
+      }
+    ],
+    "currentQuestion": {
+      "id": "gemini_1",
+      "domain": "Frontend",
+      "role": "Frontend Engineer",
+      "topic": "React",
+      "difficulty": "Easy",
+      "question": "Explain how you would manage state in a React functional component, and provide a simple example of using `useState`.",
+      "expectedConcepts": [
+        "useState Hook",
+        "Functional Components",
+        "State Update Mechanism",
+        "Re-renders",
+        "Immutability"
+      ],
+      "hints": [
+        "Consider how data changes and updates the UI.",
+        "How does React know when to re-render a component?",
+        "Think about updating primitive vs. object states."
+      ],
+      "idealAnswer": "A comprehensive model response covers: useState Hook, Functional Components, State Update Mechanism, Re-renders, Immutability."
+    },
+    "updatedAt": "2026-10-18T12:43:58.215Z"
+  },
+  {
+    "id": "d8163b2c-518f-4411-af67-75ef4155ff3f",
+    "sessionId": "d8163b2c-518f-4411-af67-75ef4155ff3f",
+    "userId": "6ad4bbe0e5c498a44be618aa",
+    "candidateName": "Ashish",
+    "targetRole": "Frontend Engineer",
+    "candidateDomain": "Frontend",
+    "customSubject": null,
+    "candidateSkills": [
+      "React",
+      "Node.js",
+      "JavaScript",
+      "REST APIs",
+      "MongoDB"
+    ],
+    "currentDifficulty": "Easy",
+    "totalQuestionsPlanned": 5,
+    "timeLimitMinutes": 15,
+    "evaluations": [],
+    "status": "IN_PROGRESS",
+    "createdAt": "2026-10-18T12:54:04.283Z",
+    "geminiQuestions": [
+      {
+        "question": "Explain the component lifecycle in React functional components, specifically how side effects are managed.",
+        "topic": "React",
+        "difficulty": "Easy",
+        "expectedConcepts": [
+          "useEffect",
+          "useState",
+          "mounting",
+          "updating",
+          "unmounting",
+          "dependency array",
+          "cleanup function"
+        ],
+        "hints": [
+          "Consider how side effects are managed and when they run or rerun."
+        ]
+      },
+      {
+        "question": "Describe how you would build a reusable data-fetching hook in React to consume a REST API, including considerations for loading states, error handling, and potential data re-fetching.",
+        "topic": "React, REST APIs",
+        "difficulty": "Medium",
+        "expectedConcepts": [
+          "custom hooks",
+          "useState",
+          "useEffect",
+          "async/await",
+          "fetch",
+          "error handling",
+          "loading states",
+          "data caching (client-side)"
+        ],
+        "hints": [
+          "Think about how to abstract common data fetching logic and its different states."
+        ]
+      },
+      {
+        "question": "You are building a complex dashboard in React that aggregates data from several backend REST endpoints. How would you design the data fetching and state management strategy to optimize performance and user experience, especially considering network latency and data dependencies? How might a Node.js layer fit into this architecture?",
+        "topic": "React, Architecture, Performance, Node.js",
+        "difficulty": "Medium-Hard",
+        "expectedConcepts": [
+          "state management libraries (e.g., React Query, Redux Toolkit)",
+          "memoization (React.memo, useMemo, useCallback)",
+          "client-side caching",
+          "Backend-for-Frontend (BFF)",
+          "data aggregation on backend",
+          "concurrent rendering",
+          "suspense for data fetching"
+        ],
+        "hints": [
+          "Consider strategies to reduce API calls, manage complex data flows, and where a dedicated backend for frontend could help."
+        ]
+      },
+      {
+        "question": "Imagine you've inherited a production React application that frequently experiences slow load times and occasional data inconsistencies due to its interaction with a backend built with Node.js and MongoDB. Outline your strategy to diagnose and propose solutions for these issues, covering both frontend and API-level considerations.",
+        "topic": "Architecture, Debugging, Performance, REST APIs, MongoDB",
+        "difficulty": "Hard",
+        "expectedConcepts": [
+          "performance profiling (browser dev tools, Lighthouse)",
+          "network tab analysis",
+          "API contract validation",
+          "error logging/monitoring (frontend & backend)",
+          "backend API performance tuning (e.g., N+1 problems, indexing in MongoDB)",
+          "caching strategies (CDN, client-side, server-side)",
+          "throttling/debouncing",
+          "database query optimization",
+          "load testing"
+        ],
+        "hints": [
+          "Start with how you would identify the root cause, then think about solutions spanning the entire stack."
+        ]
+      }
+    ],
+    "currentQuestion": {
+      "id": "gemini_1",
+      "domain": "Frontend",
+      "role": "Frontend Engineer",
+      "topic": "React",
+      "difficulty": "Easy",
+      "question": "Explain the component lifecycle in React functional components, specifically how side effects are managed.",
+      "expectedConcepts": [
+        "useEffect",
+        "useState",
+        "mounting",
+        "updating",
+        "unmounting",
+        "dependency array",
+        "cleanup function"
+      ],
+      "hints": [
+        "Consider how side effects are managed and when they run or rerun."
+      ],
+      "idealAnswer": "A comprehensive model response covers: useEffect, useState, mounting, updating, unmounting, dependency array, cleanup function."
+    },
+    "updatedAt": "2026-10-18T12:54:13.882Z"
+  }
+]

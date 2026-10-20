@@ -1,0 +1,29 @@
+[
+  {
+    "id": "user-demo-candidate-1",
+    "name": "Alex Morgan",
+    "email": "candidate@demo.com",
+    "password": "password123",
+    "role": "candidate",
+    "savedResumeText": "Full Stack Engineer with expertise in React, Node.js, JavaScript, REST APIs, and MongoDB.",
+    "createdAt": "2026-10-18T00:00:00.000Z"
+  },
+  {
+    "id": "user-0520f053",
+    "name": "ndsjnsjx",
+    "email": "engg.ashishx5241@gmail.com",
+    "password": "Ashsih@5241",
+    "role": "candidate",
+    "savedResumeText": "",
+    "createdAt": "2026-10-18T11:59:51.596Z"
+  },
+  {
+    "id": "6ad4bbe0e5c498a44be618aa",
+    "name": "Ashish",
+    "email": "ashishyaduvanshi241@gmail.com",
+    "password": "Ashish@3592",
+    "role": "candidate",
+    "savedResumeText": "",
+    "createdAt": "2026-10-18T12:30:24.300Z"
+  }
+]
