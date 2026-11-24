@@ -63,7 +63,9 @@ exports.startInterview = async (req, res) => {
       initialDifficulty,
       totalQuestionsPlanned,
       timeLimitMinutes,
-      customSubject
+      customSubject,
+      resumeText,
+      jobDescription
     } = req.body;
 
     // Enforce mandatory user authentication: guest/unregistered interviews are strictly prohibited
@@ -89,17 +91,27 @@ exports.startInterview = async (req, res) => {
       candidateDomain,
       customSubject: customSubject || null,
       candidateSkills: candidateSkills || ["General Concepts"],
+      resumeText: resumeText || null,
+      jobDescription: jobDescription || null,
       currentDifficulty: difficulty,
       totalQuestionsPlanned: totalQuestions,
       timeLimitMinutes: timeLimit,
       evaluations: [],
       status: "IN_PROGRESS",
+      isClosed: false,
       createdAt: new Date().toISOString()
     };
 
-    // Attempt Gemini AI Question generation tailored to selected domain
+    // Attempt Gemini AI Question generation tailored to candidate's Resume and optional Job Description
     let geminiQuestions = null;
-    geminiQuestions = await generateQuestionsWithGemini(candidateSkills || [], candidateDomain, customSubject);
+    geminiQuestions = await generateQuestionsWithGemini({
+      resumeText,
+      jobDescription,
+      skills: candidateSkills || [],
+      domain: candidateDomain,
+      customSubject,
+      totalQuestions
+    });
 
     if (geminiQuestions && geminiQuestions.length > 0) {
       session.geminiQuestions = geminiQuestions;
@@ -305,6 +317,7 @@ exports.evaluateAndNext = async (req, res) => {
     } else {
       session.currentQuestion = null;
       session.status = "COMPLETED";
+      session.isClosed = true;
       session.completedAt = new Date().toISOString();
 
       // Automatically generate final report when all questions are done
@@ -370,6 +383,7 @@ exports.finalizeSession = async (req, res) => {
     analysisReport.isEarlyExit = !!isEarlyExit;
     session.finalReport = analysisReport;
     session.status = "COMPLETED";
+    session.isClosed = true;
     session.completedAt = new Date().toISOString();
     await storage.saveSession(session);
 

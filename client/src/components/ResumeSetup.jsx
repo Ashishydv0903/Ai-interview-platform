@@ -11,6 +11,7 @@ export default function ResumeSetup({ onInterviewStart, user, onRequireAuth }) {
   const [timeLimitMinutes, setTimeLimitMinutes] = useState(15);
   
   const [resumeText, setResumeText] = useState("");
+  const [jobDescription, setJobDescription] = useState("");
   const [parsedSkills, setParsedSkills] = useState(["React", "Node.js", "JavaScript", "REST APIs", "MongoDB"]);
   const [isParsing, setIsParsing] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -182,6 +183,8 @@ export default function ResumeSetup({ onInterviewStart, user, onRequireAuth }) {
           domain,
           customSubject,
           candidateSkills: skillsForInterview,
+          resumeText: resumeText || null,
+          jobDescription: jobDescription || null,
           initialDifficulty: "Easy",
           totalQuestionsPlanned,
           timeLimitMinutes
@@ -418,16 +421,55 @@ export default function ResumeSetup({ onInterviewStart, user, onRequireAuth }) {
               </div>
             </div>
 
-            {/* Textarea for Manual Topics */}
+            {/* Textarea for Resume / Projects */}
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1.5">Or paste key topics / skills you want to practice:</label>
+              <label className="block text-xs font-medium text-slate-300 mb-1.5 flex items-center justify-between">
+                <span className="font-semibold text-white">Paste Resume or Project Experience:</span>
+                <span className="text-[10px] text-[#5CDB94] font-medium">Recommended for Tailored Mock</span>
+              </label>
               <textarea
                 value={resumeText}
                 onChange={e => setResumeText(e.target.value)}
                 rows={4}
                 className="w-full bg-[#071B2E] border border-[#1C476E] focus:border-[#5CDB94] rounded-xl p-3 text-xs text-slate-200 font-sans focus:outline-none leading-relaxed"
-                placeholder="e.g. React, Node.js, System Design, SQL, Problem Solving..."
+                placeholder="Paste your resume text, key projects, accomplishments, or tech stack... Gemini will craft interview questions directly from your background."
               />
+            </div>
+
+            {/* Optional Job Description */}
+            <div>
+              <label className="block text-xs font-medium text-slate-300 mb-1.5 flex items-center justify-between">
+                <span className="font-semibold text-slate-300">Target Job Description (Optional):</span>
+                <span className="text-[10px] text-slate-400">Optional alignment</span>
+              </label>
+              <textarea
+                value={jobDescription}
+                onChange={e => setJobDescription(e.target.value)}
+                rows={3}
+                className="w-full bg-[#071B2E] border border-[#1C476E] focus:border-[#5CDB94] rounded-xl p-3 text-xs text-slate-200 font-sans focus:outline-none leading-relaxed"
+                placeholder="Paste the target job description or role requirements... Questions will bridge your experience to these specific role requirements."
+              />
+            </div>
+
+            {/* Dynamic Interview Mode Badge */}
+            <div className={`p-3 rounded-xl border flex items-center gap-2.5 text-xs transition-all ${
+              resumeText && resumeText.trim().length > 30
+                ? 'bg-[#133A63]/80 border-[#5CDB94]/60 text-[#5CDB94] shadow-sm'
+                : 'bg-[#0B2641]/80 border-[#1C476E] text-slate-300'
+            }`}>
+              <Sparkles className={`w-4 h-4 shrink-0 ${resumeText && resumeText.trim().length > 30 ? 'text-[#5CDB94]' : 'text-slate-400'}`} />
+              <div>
+                <strong className="block text-white font-semibold text-xs">
+                  {resumeText && resumeText.trim().length > 30
+                    ? '🎯 Resume-Driven Mode Active'
+                    : `📚 Standard Role Practice (${targetRole})`}
+                </strong>
+                <p className="text-[11px] text-slate-300 mt-0.5 leading-snug">
+                  {resumeText && resumeText.trim().length > 30
+                    ? `Questions will probe your real projects, architecture, and metrics${jobDescription ? ' aligned with the Job Description' : ''}.`
+                    : 'No resume provided: Questions will test standard fundamentals for your selected domain.'}
+                </p>
+              </div>
             </div>
 
             {/* Skills Pills */}

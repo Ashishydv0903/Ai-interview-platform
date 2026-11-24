@@ -662,20 +662,58 @@ export default function OpenCVProctoringWidget({
         const clusterH = Math.max(0, sMaxY - sMinY);
         const clusterAspect = clusterW / Math.max(1, clusterH);
 
+        // Check native browser FaceDetector API if available
+        let nativeDetected = false;
+        if (nativeFaceDetector) {
+          try {
+            const faces = await nativeFaceDetector.detect(videoRef.current);
+            if (faces && faces.length > 0) {
+              nativeDetected = true;
+              detected = true;
+              detectedFaces = faces.length;
+              const f = faces[0].boundingBox;
+              targetBox = {
+                x: (f.x / videoRef.current.videoWidth) * width,
+                y: (f.y / videoRef.current.videoHeight) * height,
+                width: (f.width / videoRef.current.videoWidth) * width,
+                height: (f.height / videoRef.current.videoHeight) * height
+              };
+            }
+          } catch (e) {}
+        }
+
+        // Real human candidate sitting or standing in front of webcam:
+        // 1. Natural room illumination & contrast: meanL >= 10, stdDev >= 4.0
+        // 2. Real human face cluster size in candidate zone: centerSkinCount >= 10, totalSkinPixels >= 12
+        // 3. Head dimensions: clusterW >= 5, clusterH >= 6
+        // 4. Natural facial aspect ratio: 0.25 <= clusterAspect <= 2.8
+        // 5. Head positioned in upper 85% of screen: sMinY <= 42
+        const hasRealHumanSubject = (
+          meanL >= 10 &&
+          stdDev >= 4.0 &&
+          totalSkinPixels >= 12 &&
+          centerSkinCount >= 10 &&
+          clusterW >= 5 &&
+          clusterH >= 6 &&
+          clusterAspect >= 0.25 &&
+          clusterAspect <= 2.8 &&
+          sMinY <= 42
+        );
+
         // PHYSICAL CAMERA OBSTRUCTION DETECTION (Hand covering the lens):
-        // Hand directly covering lens produces EITHER:
-        // 1. Extreme darkness (meanL < 12)
-        // 2. Total flat macro blur with near-zero spatial contrast across entire sensor (stdDev < 4.8)
-        // 3. Monolithic hand/palm pressed flush onto lens glass (skinCoverageRatio > 0.88 && stdDev < 7.5)
-        if (meanL < 12) {
-          frameIsCovered = true;
-          coverDetectedReason = "Camera view is completely dark or lens is covered.";
-        } else if (stdDev < 4.8) {
-          frameIsCovered = true;
-          coverDetectedReason = "Camera lens is obstructed by hand or object (no visual contrast).";
-        } else if (skinCoverageRatio > 0.88 && stdDev < 7.5) {
-          frameIsCovered = true;
-          coverDetectedReason = "Hand or palm is pressed directly against the camera lens.";
+        // Can ONLY trigger if NO face or candidate subject is detected in the frame.
+        // A hand directly covering lens produces EITHER:
+        // 1. Extreme darkness / total light occlusion: meanL < 7 (blackout)
+        // 2. Monolithic hand/palm pressed flush onto lens: skinCoverageRatio > 0.90 && stdDev < 4.0
+        const isGraceActive = Date.now() < resumeGraceUntilRef.current;
+        if (!nativeDetected && !hasRealHumanSubject && !isGraceActive) {
+          if (meanL < 7) {
+            frameIsCovered = true;
+            coverDetectedReason = "Camera view is completely dark or lens is covered.";
+          } else if (skinCoverageRatio > 0.90 && stdDev < 4.0) {
+            frameIsCovered = true;
+            coverDetectedReason = "Hand or palm is pressed directly against the camera lens.";
+          }
         }
 
         if (frameIsCovered) {
@@ -684,7 +722,7 @@ export default function OpenCVProctoringWidget({
           detected = false;
           detectedFaces = 0;
 
-          if (consecutiveCoveredCount >= 3) {
+          if (consecutiveCoveredCount >= 8) {
             setIsCameraCovered(true);
             setCoverReason(coverDetectedReason);
             setFaceDetected(false);
@@ -702,46 +740,8 @@ export default function OpenCVProctoringWidget({
             setCoverReason('');
           }
 
-          // Check native browser FaceDetector API if available
-          let nativeDetected = false;
-          if (nativeFaceDetector) {
-            try {
-              const faces = await nativeFaceDetector.detect(videoRef.current);
-              if (faces && faces.length > 0) {
-                nativeDetected = true;
-                detected = true;
-                detectedFaces = faces.length;
-                const f = faces[0].boundingBox;
-                targetBox = {
-                  x: (f.x / videoRef.current.videoWidth) * width,
-                  y: (f.y / videoRef.current.videoHeight) * height,
-                  width: (f.width / videoRef.current.videoWidth) * width,
-                  height: (f.height / videoRef.current.videoHeight) * height
-                };
-              }
-            } catch (e) {}
-          }
-
           // Robust in-browser Computer Vision presence detector
           if (!nativeDetected) {
-            // Real human candidate sitting or standing in front of webcam:
-            // 1. Natural room illumination & contrast: meanL >= 12, stdDev >= 5.5
-            // 2. Real human face cluster size in candidate zone: centerSkinCount >= 14, totalSkinPixels >= 16
-            // 3. Head dimensions: clusterW >= 6, clusterH >= 7
-            // 4. Natural facial aspect ratio: 0.28 <= clusterAspect <= 2.4
-            // 5. Head positioned in upper 78% of screen: sMinY <= 38
-            const hasRealHumanSubject = (
-              meanL >= 12 &&
-              stdDev >= 5.5 &&
-              totalSkinPixels >= 16 &&
-              centerSkinCount >= 14 &&
-              clusterW >= 6 &&
-              clusterH >= 7 &&
-              clusterAspect >= 0.28 &&
-              clusterAspect <= 2.4 &&
-              sMinY <= 38
-            );
-
             if (hasRealHumanSubject) {
               consecutiveFaceCount = Math.min(30, consecutiveFaceCount + 2);
             } else {
@@ -1030,6 +1030,7 @@ export default function OpenCVProctoringWidget({
         enableVirtualCamera: enableVirtualMode,
         stopCamera: stopAllMediaTracks,
         resumeFace: resumeFacePresence,
+        resumeCamera: resumeFacePresence,
         deductions: deductionsList,
         flags: violationsList
       });

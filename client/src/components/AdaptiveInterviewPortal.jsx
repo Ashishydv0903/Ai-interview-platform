@@ -439,7 +439,7 @@ export default function AdaptiveInterviewPortal({ sessionData, onAnswerSubmit, o
   };
 
   const interviewer = (() => {
-    const domain = `${currentQ.domain || ''} ${currentQ.topic || ''}`.toLowerCase();
+    const domain = `${currentQ?.domain || ''} ${currentQ?.topic || ''}`.toLowerCase();
     if (domain.includes('aptitude') || domain.includes('reason')) {
       return { initial: 'A', name: 'Ananya, aptitude round', line: 'Write the steps. The final number alone is not enough.' };
     }
@@ -461,11 +461,27 @@ export default function AdaptiveInterviewPortal({ sessionData, onAnswerSubmit, o
     return { initial: 'S', name: 'Sana, frontend round', line: 'Walk through what the browser does, not just the API name.' };
   })();
 
-  if (!currentQ) {
+  if (!currentQ || sessionData?.status === 'COMPLETED' || sessionData?.isClosed) {
     return (
-      <div className="max-w-4xl mx-auto p-12 text-center text-slate-400">
-        <Sparkles className="w-10 h-10 mx-auto mb-3 text-[#5CDB94] animate-spin" />
-        <p>Loading question state...</p>
+      <div className="max-w-2xl mx-auto px-4 py-16 text-center space-y-6">
+        <div className="w-16 h-16 rounded-2xl bg-[#5CDB94]/20 text-[#5CDB94] mx-auto flex items-center justify-center border border-[#5CDB94]/40">
+          <CheckCircle2 className="w-8 h-8" />
+        </div>
+        <h2 className="text-2xl font-bold text-white font-['Outfit']">This Mock Interview is Concluded</h2>
+        <p className="text-sm text-slate-300 max-w-md mx-auto leading-relaxed">
+          The interview board is now closed. Your answers and proctoring analytics have been finalized.
+        </p>
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+          {sessionData?.finalReport && (
+            <button
+              onClick={() => onFinishSession && onFinishSession({ session: sessionData, finalReport: sessionData.finalReport })}
+              className="px-5 py-2.5 bg-[#5CDB94] hover:bg-[#4CD087] text-[#0B2540] font-extrabold text-xs rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer"
+            >
+              <CheckCircle2 className="w-4 h-4 text-[#0B2540]" />
+              View Skill Scorecard
+            </button>
+          )}
+        </div>
       </div>
     );
   }
@@ -675,16 +691,28 @@ export default function AdaptiveInterviewPortal({ sessionData, onAnswerSubmit, o
 
             {/* Camera Obstructed / Hand Detected Warning Banner */}
             {isCameraOn && isCameraCovered && (
-              <div className="mb-3 p-4 rounded-xl bg-rose-950/95 border-2 border-rose-500 text-rose-200 text-xs flex items-center gap-3 shadow-2xl animate-pulse">
-                <div className="w-10 h-10 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center shrink-0 border border-rose-500/40 text-lg">
-                  ✋
+              <div className="mb-3 p-4 rounded-xl bg-rose-950/95 border-2 border-rose-500 text-rose-200 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xl animate-pulse">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center shrink-0 border border-rose-500/40 text-lg">
+                    ✋
+                  </div>
+                  <div>
+                    <strong className="block text-white font-bold text-sm">Camera Obstructed:</strong>
+                    <p className="text-rose-200 text-xs mt-0.5">
+                      {proctoringData?.coverReason || "Camera lens covered or low contrast. Ensure lighting is on and lens is uncovered."}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <strong className="block text-white font-bold text-sm">Camera Obstructed / Hand Detected:</strong>
-                  <p className="text-rose-200 text-xs mt-0.5">
-                    {proctoringData?.coverReason || "Your camera lens is covered or obstructed. Proctoring requires an unobstructed view of your face to unlock answer typing, voice dictation, and submission."}
-                  </p>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (proctoringData?.resumeCamera) proctoringData.resumeCamera();
+                    else if (proctoringData?.resumeFace) proctoringData.resumeFace();
+                  }}
+                  className="px-3.5 py-1.5 bg-[#5CDB94] hover:bg-[#4CD087] text-[#0B2540] font-extrabold rounded-lg text-xs transition-all whitespace-nowrap cursor-pointer shadow-md self-end sm:self-center"
+                >
+                  I'm Here / Camera Clear ✅
+                </button>
               </div>
             )}
 

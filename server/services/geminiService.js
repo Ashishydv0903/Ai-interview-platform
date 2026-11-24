@@ -1,7 +1,7 @@
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 // Helper for timeout protection (prevents hanging if Google API latency spikes)
-const withTimeout = (promise, ms = 7000) => {
+const withTimeout = (promise, ms = 12000) => {
   return Promise.race([
     promise,
     new Promise((_, reject) =>
@@ -31,8 +31,8 @@ let quotaExceededUntil = 0;
 const isQuotaExceeded = () => Date.now() < quotaExceededUntil;
 const markQuotaExceeded = (errMessage) => {
   if (errMessage && (errMessage.includes('429') || errMessage.includes('Quota exceeded') || errMessage.includes('rate-limit') || errMessage.includes('Too Many Requests'))) {
-    quotaExceededUntil = Date.now() + 15 * 60 * 1000; // 15-minute circuit breaker for instant fallback
-    console.warn("⚠️ Gemini Free-Tier Quota Exceeded. Fast-switching to instant local semantic NLP engine for 15 minutes.");
+    quotaExceededUntil = Date.now() + 3 * 60 * 1000; // 3-minute temporary backoff
+    console.warn("⚠️ Gemini API Rate-Limit / Quota reached. Falling back to local semantic engine for 3 minutes.");
   }
 };
 
@@ -62,54 +62,112 @@ const getGeminiModel = (config = {}) => {
 };
 
 /**
- * Generate AI questions tailored STRICTLY to the selected domain
+ * Generate AI questions tailored to candidate's Resume and optional Job Description.
+ * If no resume is provided, falls back to the selected domain & role topics.
  */
-const generateQuestionsWithGemini = async (skills = [], domain = "Frontend", customSubject = null) => {
-  const model = getGeminiModel({ maxOutputTokens: 900 });
+const generateQuestionsWithGemini = async (options = {}, legacyDomain = "Frontend", legacyCustom = null) => {
+  let resumeText = null;
+  let jobDescription = null;
+  let skills = [];
+  let domain = "Frontend";
+  let customSubject = null;
+  let totalQuestions = 5;
+
+  if (Array.isArray(options)) {
+    skills = options;
+    domain = legacyDomain;
+    customSubject = legacyCustom;
+  } else if (typeof options === 'object' && options !== null) {
+    resumeText = options.resumeText || null;
+    jobDescription = options.jobDescription || null;
+    skills = options.skills || [];
+    domain = options.domain || "Frontend";
+    customSubject = options.customSubject || null;
+    totalQuestions = parseInt(options.totalQuestions) || 5;
+  }
+
+  const model = getGeminiModel({ maxOutputTokens: 2500 });
   if (!model) {
     return null; // Fallback to curated question bank
   }
 
-  const dLower = (domain || "").toLowerCase();
-  let domainDescription = "";
-  let relevantTopics = [];
+  const hasResume = resumeText && resumeText.trim().length > 30;
+  const hasJD = jobDescription && jobDescription.trim().length > 15;
 
-  if (dLower.includes("aptitude") || dLower.includes("reasoning")) {
-    domainDescription = "Aptitude, Quantitative Mathematics, and Logical Reasoning (e.g., probability, speed-distance-time, percentages, syllogisms, number series, seating arrangements, ratios). DO NOT generate coding or software questions.";
-    relevantTopics = ["Logical Deduction", "Quantitative Aptitude", "Probability & Combinatorics", "Time and Work", "Ratios and Percentages"];
-  } else if (dLower.includes("business") || dLower.includes("management") || dLower.includes("product")) {
-    domainDescription = "Business Management, Product Strategy & Metrics (e.g., CAC/LTV unit economics, SWOT, RICE prioritization, stakeholder conflict, market sizing). DO NOT generate technical coding questions.";
-    relevantTopics = ["Product Strategy", "Unit Economics", "Stakeholder Alignment", "Prioritization Frameworks"];
-  } else if (dLower.includes("english") || dLower.includes("communication")) {
-    domainDescription = "Professional Workplace Communication, Conflict De-escalation & STAR Behavioral Interview Scenarios. DO NOT generate technical coding questions.";
-    relevantTopics = ["STAR Method", "De-escalation", "Executive Communication", "Client Relationship Management"];
-  } else if (dLower.includes("finance") || dLower.includes("accounting")) {
-    domainDescription = "Corporate Finance, Accounting & Valuation (e.g., Three Financial Statements integration, Net Working Capital, Cash Flow, DCF). DO NOT generate programming questions.";
-    relevantTopics = ["Financial Statements", "Working Capital", "Valuation", "Accounting Principles"];
-  } else if (dLower === "custom" && customSubject) {
-    domainDescription = `Specialized Subject / Exam: "${customSubject}". All questions must strictly pertain to this topic.`;
-    relevantTopics = [customSubject];
-  } else if (dLower.includes("frontend")) {
-    domainDescription = "Frontend Web Engineering (e.g., React, JavaScript event loop, DOM reconciliation, modern CSS, Web Core Vitals, state management). Focus ONLY on Frontend; do not ask backend or database questions.";
-    relevantTopics = (skills || []).filter(s => /react|vue|angular|javascript|typescript|html|css|tailwind|redux|frontend/i.test(s));
-    if (relevantTopics.length === 0) relevantTopics = ["React", "JavaScript", "Browser Performance", "State Management"];
-  } else if (dLower.includes("backend")) {
-    domainDescription = "Backend Software Engineering (e.g., Node.js runtime, REST vs GraphQL, SQL/NoSQL databases, microservices, distributed caching, concurrency). Focus ONLY on Backend; do not ask frontend/UI questions.";
-    relevantTopics = (skills || []).filter(s => /node|express|python|java|database|sql|mongo|redis|api|backend/i.test(s));
-    if (relevantTopics.length === 0) relevantTopics = ["Node.js", "REST APIs", "SQL & Databases", "Caching Architecture"];
-  } else if (dLower.includes("datascience") || dLower.includes("ai")) {
-    domainDescription = "Data Science, Machine Learning & AI (e.g., Bias-Variance Tradeoff, Precision vs Recall, Transformers, Embeddings).";
-    relevantTopics = ["Machine Learning", "Transformers & NLP", "Model Evaluation", "Vector Embeddings"];
+  let prompt = "";
+
+  if (hasResume) {
+    prompt = `
+You are a senior hiring manager and lead technical interviewer conducting an in-depth, realistic interview.
+
+CANDIDATE'S ACTUAL RESUME:
+"""
+${resumeText.trim().substring(0, 4000)}
+"""
+${hasJD ? `
+TARGET JOB DESCRIPTION / ROLE REQUIREMENTS:
+"""
+${jobDescription.trim().substring(0, 3000)}
+"""
+` : ''}
+
+CRITICAL INTERVIEW INSTRUCTIONS:
+1. Generate exactly ${totalQuestions} realistic, rigorous, and practical interview questions that directly evaluate the candidate on the ACTUAL projects, architecture, tools, responsibilities, and technical claims in their resume.
+2. Reference specific projects, technologies, and achievements from their resume in the questions (e.g. "In your project [X], you used [Y]; how did you design...", "You mentioned improving performance by [Z]; what architectural decisions made that possible?").
+${hasJD ? '3. Bridge their past experience with the requirements described in the Target Job Description.' : '3. Test both foundational depth and practical real-world problem solving based on their resume background.'}
+4. Vary difficulty smoothly across the questions: starting with a clear foundational/architectural question and progressing to deep real-world trade-offs and edge-case design.
+5. Return ONLY a valid JSON array of objects. Do not add markdown fences or conversational text.
+
+Each object must have:
+- "question": string (the detailed, realistic interview question referencing candidate's background),
+- "topic": string (specific skill or project area),
+- "difficulty": "Easy" | "Medium" | "Hard" | "Expert",
+- "expectedConcepts": array of 4-6 key concepts/terms a great answer should cover,
+- "hints": array of 1-2 helpful hints,
+- "idealAnswer": 2-3 sentence comprehensive model answer demonstrating what a 100% score includes.
+`;
   } else {
-    domainDescription = `${domain} Assessment`;
-    relevantTopics = skills.length > 0 ? skills : ["Core Fundamentals", "Problem Solving"];
-  }
+    // Standard domain-based fallback when candidate provided no resume
+    const dLower = (domain || "").toLowerCase();
+    let domainDescription = "";
+    let relevantTopics = [];
 
-  const prompt = `
-Generate exactly 4 realistic, interview questions specifically tailored for the target domain:
+    if (dLower.includes("aptitude") || dLower.includes("reasoning")) {
+      domainDescription = "Aptitude, Quantitative Mathematics, and Logical Reasoning (e.g., probability, speed-distance-time, percentages, syllogisms, number series, seating arrangements, ratios). DO NOT generate coding questions.";
+      relevantTopics = ["Logical Deduction", "Quantitative Aptitude", "Probability & Combinatorics", "Time and Work", "Ratios and Percentages"];
+    } else if (dLower.includes("business") || dLower.includes("management") || dLower.includes("product")) {
+      domainDescription = "Business Management, Product Strategy & Metrics (e.g., CAC/LTV unit economics, SWOT, RICE prioritization, stakeholder conflict, market sizing). DO NOT generate coding questions.";
+      relevantTopics = ["Product Strategy", "Unit Economics", "Stakeholder Alignment", "Prioritization Frameworks"];
+    } else if (dLower.includes("english") || dLower.includes("communication")) {
+      domainDescription = "Professional Workplace Communication, Conflict De-escalation & STAR Behavioral Interview Scenarios.";
+      relevantTopics = ["STAR Method", "De-escalation", "Executive Communication", "Client Relationship Management"];
+    } else if (dLower.includes("finance") || dLower.includes("accounting")) {
+      domainDescription = "Corporate Finance, Accounting & Valuation (e.g., Three Financial Statements integration, Net Working Capital, Cash Flow, DCF).";
+      relevantTopics = ["Financial Statements", "Working Capital", "Valuation", "Accounting Principles"];
+    } else if (dLower === "custom" && customSubject) {
+      domainDescription = `Specialized Subject / Exam: "${customSubject}". All questions must strictly pertain to this topic.`;
+      relevantTopics = [customSubject];
+    } else if (dLower.includes("frontend")) {
+      domainDescription = "Frontend Web Engineering (e.g., React, JavaScript event loop, DOM reconciliation, modern CSS, Web Core Vitals, state management).";
+      relevantTopics = (skills || []).filter(s => /react|vue|angular|javascript|typescript|html|css|tailwind|redux|frontend/i.test(s));
+      if (relevantTopics.length === 0) relevantTopics = ["React", "JavaScript", "Browser Performance", "State Management"];
+    } else if (dLower.includes("backend")) {
+      domainDescription = "Backend Software Engineering (e.g., Node.js runtime, REST vs GraphQL, SQL/NoSQL databases, microservices, distributed caching, concurrency).";
+      relevantTopics = (skills || []).filter(s => /node|express|python|java|database|sql|mongo|redis|api|backend/i.test(s));
+      if (relevantTopics.length === 0) relevantTopics = ["Node.js", "REST APIs", "SQL & Databases", "Caching Architecture"];
+    } else if (dLower.includes("datascience") || dLower.includes("ai")) {
+      domainDescription = "Data Science, Machine Learning & AI (e.g., Bias-Variance Tradeoff, Precision vs Recall, Transformers, Embeddings).";
+      relevantTopics = ["Machine Learning", "Transformers & NLP", "Model Evaluation", "Vector Embeddings"];
+    } else {
+      domainDescription = `${domain} Assessment`;
+      relevantTopics = skills.length > 0 ? skills : ["Core Fundamentals", "Problem Solving"];
+    }
+
+    prompt = `
+Generate exactly ${totalQuestions} realistic, interview questions specifically tailored for the target domain:
 TARGET DOMAIN: ${domainDescription}
 FOCUS TOPICS: ${relevantTopics.join(", ")}
-Vary difficulty cleanly from Easy to Hard.
+Vary difficulty cleanly from Easy to Hard / Expert.
 
 Rules:
 - Questions MUST be 100% relevant to "${domainDescription}". If domain is Aptitude/Business/English, DO NOT ask software coding questions.
@@ -122,25 +180,18 @@ Rules:
   "expectedConcepts": array of 4-6 key concepts/terms required in a complete answer,
   "hints": array of 1-2 clue strings,
   "idealAnswer": a comprehensive 2-3 sentence model answer explaining what a 100% score includes.
-
-Example JSON format:
-[
-  {
-    "question": "Sample question text...",
-    "topic": "Sample Topic",
-    "difficulty": "Easy",
-    "expectedConcepts": ["Concept A", "Concept B", "Concept C"],
-    "hints": ["Helpful clue here."],
-    "idealAnswer": "A complete 100% answer explains Concept A, proves Concept B, and provides practical application."
-  }
-]
 `;
+  }
 
   try {
-    const result = await withTimeout(model.generateContent(prompt), 4500);
+    const result = await withTimeout(model.generateContent(prompt), 14000);
     const text = result.response.text();
     const parsed = extractJson(text);
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : null;
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      console.log(`✅ [Gemini] Successfully generated ${parsed.length} tailored interview questions${hasResume ? ' (Based on Candidate Resume)' : ''}${hasJD ? ' (Aligned with Job Description)' : ''}.`);
+      return parsed;
+    }
+    return null;
   } catch (err) {
     markQuotaExceeded(err.message);
     console.warn("⚠️ Gemini Question Generation Notice:", err.message, "-> Using curated Question Bank.");

@@ -39,18 +39,18 @@ export default function Header({ activeTab, setActiveTab, currentSession, user, 
 
           <button
             onClick={() => setActiveTab('interview')}
-            disabled={!currentSession}
+            disabled={!currentSession || currentSession.status === 'COMPLETED' || currentSession.isClosed}
             className={`px-3 py-1.5 rounded-lg flex items-center gap-2 transition-all ${
               activeTab === 'interview'
                 ? 'bg-[#0B2540] text-white shadow-md font-bold'
-                : !currentSession
+                : (!currentSession || currentSession.status === 'COMPLETED' || currentSession.isClosed)
                 ? 'text-[#0B2540]/40 cursor-not-allowed'
                 : 'text-[#0B2540] hover:text-black hover:bg-[#5CDB94] font-semibold'
             }`}
           >
             <BrainCircuit className="w-4 h-4" />
             <span>Live Mock</span>
-            {currentSession && currentSession.status !== 'COMPLETED' && (
+            {currentSession && currentSession.status !== 'COMPLETED' && !currentSession.isClosed && (
               <span className="w-2 h-2 rounded-full bg-[#0B2540] animate-ping"></span>
             )}
           </button>

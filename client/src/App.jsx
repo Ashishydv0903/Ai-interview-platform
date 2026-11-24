@@ -90,8 +90,11 @@ export default function App() {
         });
         window.__activeInterviewMediaStream = null;
       }
+    } else if (currentSession?.status === 'COMPLETED' || currentSession?.isClosed) {
+      // Prevent re-entering a completed or closed interview board
+      setActiveTab(currentSession?.finalReport ? 'dashboard' : 'setup');
     }
-  }, [activeTab]);
+  }, [activeTab, currentSession]);
 
   const handleViewSessionDetail = (session) => {
     setCurrentSession(session);
