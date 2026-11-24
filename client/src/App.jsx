@@ -70,9 +70,27 @@ export default function App() {
   };
 
   const handleFinishSession = (completedData) => {
+    if (typeof window !== 'undefined' && window.__activeInterviewMediaStream) {
+      window.__activeInterviewMediaStream.getTracks().forEach(t => {
+        try { t.stop(); } catch (e) {}
+      });
+      window.__activeInterviewMediaStream = null;
+    }
     setCurrentSession(completedData.session);
     setActiveTab('dashboard');
   };
+
+  useEffect(() => {
+    // Whenever candidate navigates away from interview room, shut down webcam/mic hardware
+    if (activeTab !== 'interview') {
+      if (typeof window !== 'undefined' && window.__activeInterviewMediaStream) {
+        window.__activeInterviewMediaStream.getTracks().forEach(t => {
+          try { t.stop(); } catch (e) {}
+        });
+        window.__activeInterviewMediaStream = null;
+      }
+    }
+  }, [activeTab]);
 
   const handleViewSessionDetail = (session) => {
     setCurrentSession(session);

@@ -39,6 +39,15 @@ export default function AdaptiveInterviewPortal({ sessionData, onAnswerSubmit, o
       if (recognitionRef.current) {
         try { recognitionRef.current.stop(); } catch (e) {}
       }
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+      if (typeof window !== 'undefined' && window.__activeInterviewMediaStream) {
+        window.__activeInterviewMediaStream.getTracks().forEach(t => {
+          try { t.stop(); } catch (e) {}
+        });
+        window.__activeInterviewMediaStream = null;
+      }
     };
   }, []);
 
@@ -220,6 +229,23 @@ export default function AdaptiveInterviewPortal({ sessionData, onAnswerSubmit, o
       }
 
       if (data.data.isCompleted) {
+        // Guarantee hardware camera and mic are completely powered down immediately
+        if (proctoringData?.stopCamera) {
+          try { proctoringData.stopCamera(); } catch (e) {}
+        }
+        if (typeof window !== 'undefined' && window.__activeInterviewMediaStream) {
+          window.__activeInterviewMediaStream.getTracks().forEach(t => {
+            try { t.stop(); } catch (e) {}
+          });
+          window.__activeInterviewMediaStream = null;
+        }
+        if (recognitionRef.current) {
+          try { recognitionRef.current.stop(); } catch (e) {}
+        }
+        if ('speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+        }
+
         const finalSession = data.data.session || sessionData;
         const finalReport = data.data.finalReport || finalSession?.finalReport;
         const finalReportWithProctoring = {
@@ -274,6 +300,22 @@ export default function AdaptiveInterviewPortal({ sessionData, onAnswerSubmit, o
   // Voluntary Early Exit with Partial Scorecard Generation
   const handleExitEarly = async () => {
     setIsExiting(true);
+    // Guarantee hardware camera and mic are completely powered down immediately
+    if (proctoringData?.stopCamera) {
+      try { proctoringData.stopCamera(); } catch (e) {}
+    }
+    if (typeof window !== 'undefined' && window.__activeInterviewMediaStream) {
+      window.__activeInterviewMediaStream.getTracks().forEach(t => {
+        try { t.stop(); } catch (e) {}
+      });
+      window.__activeInterviewMediaStream = null;
+    }
+    if (recognitionRef.current) {
+      try { recognitionRef.current.stop(); } catch (e) {}
+    }
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
     try {
       const exitRecord = {
         id: `MANUAL_EXIT_${Date.now()}`,

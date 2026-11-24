@@ -26,6 +26,7 @@ export default function OpenCVProctoringWidget({
   const analyserRef = useRef(null);
   const animFrameIdRef = useRef(null);
   const mediaStreamRef = useRef(null);
+  const isMountedRef = useRef(true);
 
   // Hardware states: initial cameraActive is FALSE until hardware feed or permission confirms active
   const [cameraActive, setCameraActive] = useState(false);
@@ -132,9 +133,42 @@ export default function OpenCVProctoringWidget({
     } catch (e) {}
   }, []);
 
+  // Hardware Stream Release Utility: Guarantees webcam and mic sensor hardware LEDs shut off immediately
+  const stopAllMediaTracks = useCallback(() => {
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach(t => {
+        try { t.stop(); } catch (e) {}
+      });
+      mediaStreamRef.current = null;
+    }
+    if (typeof window !== 'undefined' && window.__activeInterviewMediaStream) {
+      window.__activeInterviewMediaStream.getTracks().forEach(t => {
+        try { t.stop(); } catch (e) {}
+      });
+      window.__activeInterviewMediaStream = null;
+    }
+    if (videoRef.current) {
+      try {
+        videoRef.current.pause();
+        videoRef.current.srcObject = null;
+      } catch (e) {}
+    }
+    if (audioContextRef.current) {
+      try {
+        audioContextRef.current.close().catch(() => {});
+      } catch (e) {}
+      audioContextRef.current = null;
+    }
+    if (animFrameIdRef.current) {
+      cancelAnimationFrame(animFrameIdRef.current);
+      animFrameIdRef.current = null;
+    }
+  }, []);
+
   // 1. HARDWARE STREAM INITIALIZATION (Live Camera + Microphone)
   const initMediaDevices = useCallback(async () => {
     try {
+      if (!isMountedRef.current) return;
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         throw new Error('Webcam API is not supported in this browser environment.');
       }
@@ -149,7 +183,26 @@ export default function OpenCVProctoringWidget({
         audio: true
       });
 
+      // If component unmounted while awaiting user approval / stream negotiation, release immediately!
+      if (!isMountedRef.current) {
+        stream.getTracks().forEach(t => {
+          try { t.stop(); } catch (e) {}
+        });
+        return;
+      }
+
+      // Stop any prior dangling stream before assigning new one
+      if (mediaStreamRef.current && mediaStreamRef.current !== stream) {
+        mediaStreamRef.current.getTracks().forEach(t => {
+          try { t.stop(); } catch (e) {}
+        });
+      }
+
       mediaStreamRef.current = stream;
+      if (typeof window !== 'undefined') {
+        window.__activeInterviewMediaStream = stream;
+      }
+
       setHardwareState('LIVE');
       setCameraActive(true);
       setMicActive(true);
@@ -198,6 +251,7 @@ export default function OpenCVProctoringWidget({
         setMicActive(audTrack.enabled && !audTrack.muted && audTrack.readyState === 'live');
       }
     } catch (err) {
+      if (!isMountedRef.current) return;
       console.warn('Live webcam/mic initialization notice:', err);
       setCameraActive(false);
       setFaceDetected(false);
@@ -216,53 +270,30 @@ export default function OpenCVProctoringWidget({
   }, [recordViolation]);
 
   useEffect(() => {
-    let isMounted = true;
+    isMountedRef.current = true;
     initMediaDevices();
 
     return () => {
-      isMounted = false;
-      if (mediaStreamRef.current) {
-        mediaStreamRef.current.getTracks().forEach(t => t.stop());
-      }
-      if (audioContextRef.current) {
-        audioContextRef.current.close().catch(() => {});
-      }
-      if (animFrameIdRef.current) {
-        cancelAnimationFrame(animFrameIdRef.current);
-      }
+      isMountedRef.current = false;
+      stopAllMediaTracks();
     };
-  }, [initMediaDevices]);
+  }, [initMediaDevices, stopAllMediaTracks]);
 
   // Turn camera ON or OFF explicitly
   const toggleCamera = useCallback(async () => {
     if (cameraActive) {
-      // Turn OFF
-      if (mediaStreamRef.current) {
-        const vidTrack = mediaStreamRef.current.getVideoTracks()[0];
-        if (vidTrack) vidTrack.enabled = false;
-      }
+      // Turn OFF: Full hardware release so camera LED turns off
+      stopAllMediaTracks();
       setCameraActive(false);
       setFaceDetected(false);
       setLiveFaceStatus('MISSING');
       setIsFaceAbsentPaused(true);
       recordViolation('WEBCAM_DISCONNECTED', 'Candidate turned off camera feed. Answering is locked.', 'CRITICAL', 10);
     } else {
-      // Turn ON
-      if (mediaStreamRef.current && mediaStreamRef.current.getVideoTracks().length > 0) {
-        const vidTrack = mediaStreamRef.current.getVideoTracks()[0];
-        if (vidTrack) vidTrack.enabled = true;
-        setCameraActive(true);
-        setHardwareState('LIVE');
-        setFaceDetected(true);
-        setLiveFaceStatus('DETECTED');
-        setIsFaceAbsentPaused(false);
-        faceAbsentStartRef.current = null;
-        recordViolation('WEBCAM_CONNECTED', 'Candidate turned camera feed back on.', 'INFO', 0);
-      } else {
-        await initMediaDevices();
-      }
+      // Turn ON: Acquire fresh hardware media stream
+      await initMediaDevices();
     }
-  }, [cameraActive, initMediaDevices, recordViolation]);
+  }, [cameraActive, initMediaDevices, recordViolation, stopAllMediaTracks]);
 
   // Enable Virtual Testing Mode (For test environments without physical webcam)
   const enableVirtualMode = useCallback(() => {
@@ -975,6 +1006,7 @@ export default function OpenCVProctoringWidget({
         isFaceAbsentPaused: isFaceAbsentPaused || !cameraActive || isCameraCovered,
         enableCamera: toggleCamera,
         enableVirtualCamera: enableVirtualMode,
+        stopCamera: stopAllMediaTracks,
         resumeFace: resumeFacePresence,
         deductions: deductionsList,
         flags: violationsList
@@ -984,7 +1016,7 @@ export default function OpenCVProctoringWidget({
     trustScore, violationsList, gazeStability, facePresencePct,
     focusRetentionPct, cameraActive, hardwareState, hardwareErrorMsg, micActive,
     isCameraCovered, coverReason, faceDetected, liveFocusStatus, liveFaceStatus,
-    isFaceAbsentPaused, deductionsList, toggleCamera, enableVirtualMode, resumeFacePresence, onProctoringUpdate
+    isFaceAbsentPaused, deductionsList, toggleCamera, enableVirtualMode, resumeFacePresence, stopAllMediaTracks, onProctoringUpdate
   ]);
 
   return (

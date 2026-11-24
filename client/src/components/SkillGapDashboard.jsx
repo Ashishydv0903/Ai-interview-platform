@@ -107,6 +107,16 @@ export default function SkillGapDashboard({ sessionData, user, onBackToHistory, 
   const [loadingPast, setLoadingPast] = useState(false);
 
   useEffect(() => {
+    // Hardware guarantee: completely release any webcam and microphone sensor tracks on scorecard view
+    if (typeof window !== 'undefined' && window.__activeInterviewMediaStream) {
+      window.__activeInterviewMediaStream.getTracks().forEach(t => {
+        try { t.stop(); } catch (e) {}
+      });
+      window.__activeInterviewMediaStream = null;
+    }
+  }, []);
+
+  useEffect(() => {
     const fetchHistory = async () => {
       try {
         setLoadingPast(true);
