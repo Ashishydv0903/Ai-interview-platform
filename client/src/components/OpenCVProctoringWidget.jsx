@@ -75,6 +75,7 @@ export default function OpenCVProctoringWidget({
   const multipleFacesCountRef = useRef(0);
   const lastViolationTimeRef = useRef(0);
   const hasEverLostFocusRef = useRef(false);
+  const resumeGraceUntilRef = useRef(0);
 
   // Helper: Log and announce a verified proctoring violation with penalty & duration
   const recordViolation = useCallback((type, message, severity = 'WARNING', penalty = 5, durationSec = null) => {
@@ -277,6 +278,7 @@ export default function OpenCVProctoringWidget({
 
   // One-click resume: Candidate confirms face in view
   const resumeFacePresence = useCallback(() => {
+    resumeGraceUntilRef.current = Date.now() + 8000; // 8-second grace period
     faceAbsentStartRef.current = null;
     faceAbsentWarningLoggedRef.current = false;
     setIsFaceAbsentPaused(false);
@@ -300,10 +302,10 @@ export default function OpenCVProctoringWidget({
       if (!cameraActive || faceAbsentStartRef.current) {
         totalFaceAbsentSecondsRef.current += 1;
 
-        if (faceAbsentStartRef.current) {
+        if (faceAbsentStartRef.current && Date.now() >= resumeGraceUntilRef.current) {
           const absentSec = Math.round((Date.now() - faceAbsentStartRef.current) / 1000);
 
-          if (absentSec >= 5 && !faceAbsentWarningLoggedRef.current) {
+          if (absentSec >= 4 && !faceAbsentWarningLoggedRef.current) {
             faceAbsentWarningLoggedRef.current = true;
             setIsFaceAbsentPaused(true);
             setLiveFaceStatus('MISSING');
@@ -564,11 +566,16 @@ export default function OpenCVProctoringWidget({
               const Cb = 128 - 0.168736 * r - 0.331264 * g + 0.5 * b;
               const Cr = 128 + 0.5 * r - 0.418688 * g - 0.081312 * b;
 
+              // Rigorous skin chrominance filter:
+              // Excludes saturated red/maroon clothing fabrics (where r-g > 48 or r/(g+1) > 2.15).
+              // Natural human skin contains melanin and blood perfusion with significant green components.
               const isSkin = (
-                L >= 14 && L <= 250 &&
-                Cb >= 65 && Cb <= 155 &&
-                Cr >= 112 && Cr <= 195 &&
-                (r >= g - 16) &&
+                L >= 14 && L <= 248 &&
+                Cb >= 68 && Cb <= 160 &&
+                Cr >= 110 && Cr <= 190 &&
+                (r >= g - 12) &&
+                (r - g <= 48) &&
+                (r / (g + 1) <= 2.15) &&
                 (r + g >= b * 0.95) &&
                 (Math.max(r, g, b) - Math.min(r, g, b) >= 3)
               );
@@ -581,7 +588,7 @@ export default function OpenCVProctoringWidget({
                 if (y > sMaxY) sMaxY = y;
 
                 // Central framing zone (where candidate head resides)
-                if (x >= 12 && x <= 52 && y >= 4 && y <= 40) {
+                if (x >= 10 && x <= 54 && y >= 2 && y <= 42) {
                   centerSkinCount++;
                 }
               }
@@ -602,22 +609,18 @@ export default function OpenCVProctoringWidget({
 
         // PHYSICAL CAMERA OBSTRUCTION DETECTION (Hand covering the lens):
         // Hand directly covering lens produces EITHER:
-        // 1. Extreme darkness (meanL < 18)
-        // 2. Total flat blur with near-zero spatial variance (stdDev < 6.5) across the entire frame
-        // 3. Monolithic hand/palm pressed on lens: skinCoverageRatio > 0.60 touching edges
-        // 4. Overwhelming skin coverage: skinCoverageRatio > 0.75 across the entire sensor
-        if (meanL < 18) {
+        // 1. Extreme darkness (meanL < 12)
+        // 2. Total flat macro blur with near-zero spatial contrast across entire sensor (stdDev < 4.8)
+        // 3. Monolithic hand/palm pressed flush onto lens glass (skinCoverageRatio > 0.88 && stdDev < 7.5)
+        if (meanL < 12) {
           frameIsCovered = true;
           coverDetectedReason = "Camera view is completely dark or lens is covered.";
-        } else if (stdDev < 6.5) {
+        } else if (stdDev < 4.8) {
           frameIsCovered = true;
           coverDetectedReason = "Camera lens is obstructed by hand or object (no visual contrast).";
-        } else if (skinCoverageRatio > 0.75) {
+        } else if (skinCoverageRatio > 0.88 && stdDev < 7.5) {
           frameIsCovered = true;
           coverDetectedReason = "Hand or palm is pressed directly against the camera lens.";
-        } else if (skinCoverageRatio > 0.58 && sMinX <= 4 && sMaxX >= 59 && sMinY <= 4) {
-          frameIsCovered = true;
-          coverDetectedReason = "Hand or fingers covering the entire camera lens.";
         }
 
         if (frameIsCovered) {
@@ -666,24 +669,31 @@ export default function OpenCVProctoringWidget({
 
           // Robust in-browser Computer Vision presence detector
           if (!nativeDetected) {
-            // A real human subject sitting at desk distance satisfies:
-            // 1. Sufficient natural contrast & lighting (meanL >= 15, stdDev >= 6.8)
-            // 2. Real human face cluster size (centerSkinCount >= 45) -> rejects small distant pictures on wall (~15-25px)
-            // 3. Real head dimensions (clusterW >= 10, clusterH >= 12, sMinY <= 28)
-            // 4. Human facial aspect ratio (0.38 <= clusterAspect <= 1.85) -> rejects horizontal or vertical streaks
+            // Real human candidate sitting or standing in front of webcam:
+            // 1. Natural room illumination & contrast: meanL >= 12, stdDev >= 5.5
+            // 2. Real human face cluster size in candidate zone: centerSkinCount >= 14, totalSkinPixels >= 16
+            // 3. Head dimensions: clusterW >= 6, clusterH >= 7
+            // 4. Natural facial aspect ratio: 0.28 <= clusterAspect <= 2.4
+            // 5. Head positioned in upper 78% of screen: sMinY <= 38
             const hasRealHumanSubject = (
-              meanL >= 15 &&
-              stdDev >= 6.8 &&
-              centerSkinCount >= 45 &&
-              clusterW >= 10 &&
-              clusterH >= 12 &&
-              clusterAspect >= 0.38 &&
-              clusterAspect <= 1.85 &&
-              sMinY <= 28
+              meanL >= 12 &&
+              stdDev >= 5.5 &&
+              totalSkinPixels >= 16 &&
+              centerSkinCount >= 14 &&
+              clusterW >= 6 &&
+              clusterH >= 7 &&
+              clusterAspect >= 0.28 &&
+              clusterAspect <= 2.4 &&
+              sMinY <= 38
             );
 
             if (hasRealHumanSubject) {
-              consecutiveFaceCount++;
+              consecutiveFaceCount = Math.min(30, consecutiveFaceCount + 2);
+            } else {
+              consecutiveFaceCount = Math.max(0, consecutiveFaceCount - 1);
+            }
+
+            if (consecutiveFaceCount >= 1 || (Date.now() < resumeGraceUntilRef.current)) {
               detected = true;
               detectedFaces = 1;
 

@@ -81,6 +81,10 @@ export default function AdaptiveInterviewPortal({ sessionData, onAnswerSubmit, o
       alert("Face Required: Please position your face in the camera view to use voice dictation.");
       return;
     }
+    if (proctoringData && !proctoringData.micActive) {
+      alert("Microphone Muted: Please unmute your microphone in the OpenCV Proctoring widget to use voice dictation.");
+      return;
+    }
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
