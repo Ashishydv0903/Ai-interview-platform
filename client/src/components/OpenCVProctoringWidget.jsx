@@ -6,14 +6,9 @@ import {
 } from 'lucide-react';
 
 /**
- * Production-Grade OpenCV AI Proctoring Widget
- *
- * Strict Camera & Proctoring Enforcement:
- * 1. Answering is strictly locked if camera is off, disabled, or not permitted.
- * 2. Real-time webcam hardware stream capture with automatic permission handling.
- * 3. Tab switching & window focus duration tracking with progressive deductions.
- * 4. Face presence verification with 4s pause threshold and multiple person alerts.
- * 5. Full audit trail and itemized trust deduction recalculation.
+ * Webcam proctoring panel.
+ * Face check uses the browser FaceDetector API when the browser has it,
+ * and a small skin-tone sample otherwise. Answers stay locked until a face is in frame.
  */
 export default function OpenCVProctoringWidget({
   isSpeaking = false,
@@ -27,6 +22,9 @@ export default function OpenCVProctoringWidget({
   const animFrameIdRef = useRef(null);
   const mediaStreamRef = useRef(null);
   const isMountedRef = useRef(true);
+  const alertAudioRef = useRef(null);
+  const onProctoringUpdateRef = useRef(onProctoringUpdate);
+  onProctoringUpdateRef.current = onProctoringUpdate;
 
   // Hardware states: initial cameraActive is FALSE until hardware feed or permission confirms active
   const [cameraActive, setCameraActive] = useState(false);
@@ -116,15 +114,21 @@ export default function OpenCVProctoringWidget({
       setActiveAlert(current => (current?.id === newRecord.id ? null : current));
     }, 4500);
 
-    // Subtle audio alert tone using Web Audio API
+    // One shared audio context. Creating a new one per warning leaks contexts and stutters the tab.
     try {
-      const alertCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (!alertAudioRef.current) {
+        alertAudioRef.current = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      const alertCtx = alertAudioRef.current;
+      if (alertCtx.state === 'suspended') {
+        alertCtx.resume().catch(() => {});
+      }
       const osc = alertCtx.createOscillator();
       const gain = alertCtx.createGain();
       osc.type = 'sine';
       osc.frequency.setValueAtTime(440, alertCtx.currentTime);
       osc.frequency.exponentialRampToValueAtTime(330, alertCtx.currentTime + 0.15);
-      gain.gain.setValueAtTime(0.08, alertCtx.currentTime);
+      gain.gain.setValueAtTime(0.05, alertCtx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.001, alertCtx.currentTime + 0.15);
       osc.connect(gain);
       gain.connect(alertCtx.destination);
@@ -162,6 +166,10 @@ export default function OpenCVProctoringWidget({
     if (animFrameIdRef.current) {
       cancelAnimationFrame(animFrameIdRef.current);
       animFrameIdRef.current = null;
+    }
+    if (alertAudioRef.current) {
+      try { alertAudioRef.current.close(); } catch (e) {}
+      alertAudioRef.current = null;
     }
   }, []);
 
@@ -509,6 +517,16 @@ export default function OpenCVProctoringWidget({
 
     let consecutiveCoveredCount = 0;
     let consecutiveFaceCount = 0;
+    let lastSampleAt = 0;
+    let displayedFps = 0;
+    // Last vision result. Drawing can reuse it so we don't scan pixels on every animation frame.
+    let held = {
+      detected: false,
+      detectedFaces: 0,
+      frameIsCovered: false,
+      coverDetectedReason: '',
+      target: { x: 120, y: 70, width: 220, height: 260 }
+    };
 
     const renderLoop = async () => {
       const width = canvas.width;
@@ -518,7 +536,7 @@ export default function OpenCVProctoringWidget({
       frameCount++;
       const now = Date.now();
       if (now - lastFpsCheck >= 1000) {
-        setMeasuredFps(frameCount);
+        displayedFps = frameCount;
         frameCount = 0;
         lastFpsCheck = now;
       }
@@ -548,8 +566,6 @@ export default function OpenCVProctoringWidget({
         const rms = Math.sqrt(sum / dataArray.length);
         currentDb = Math.min(100, Math.round((rms / 255) * 100));
         isVoiceDetected = currentDb > 18;
-        setMicVolumeDb(currentDb);
-        setIsVoiceActive(isVoiceDetected);
 
         // Draw live mini audio spectrum bar
         const barWidth = width / dataArray.length;
@@ -567,6 +583,14 @@ export default function OpenCVProctoringWidget({
       let coverDetectedReason = '';
 
       if (cameraActive && hardwareState === 'LIVE' && videoRef.current && videoRef.current.readyState >= 2) {
+        if (now - lastSampleAt < 160) {
+          detected = held.detected;
+          detectedFaces = held.detectedFaces;
+          frameIsCovered = held.frameIsCovered;
+          coverDetectedReason = held.coverDetectedReason;
+          targetBox = held.target;
+        } else {
+        lastSampleAt = now;
         let meanL = 0;
         let stdDev = 0;
         let totalSkinPixels = 0;
@@ -748,7 +772,14 @@ export default function OpenCVProctoringWidget({
             }
           }
         }
-      } else if (cameraActive && hardwareState === 'VIRTUAL') {
+
+        held.detected = detected;
+        held.detectedFaces = detectedFaces;
+        held.frameIsCovered = frameIsCovered;
+        held.coverDetectedReason = coverDetectedReason;
+        held.target = targetBox;
+      }
+    } else if (cameraActive && hardwareState === 'VIRTUAL') {
         // Virtual test pattern mode if explicitly toggled for testing without webcam
         detected = true;
         detectedFaces = 1;
@@ -837,7 +868,6 @@ export default function OpenCVProctoringWidget({
 
       const yawDeg = Math.round(deltaX * 35);
       const pitchDeg = Math.round(deltaY * 25);
-      setHeadPose({ yaw: yawDeg, pitch: pitchDeg });
 
       let currentGaze = 'CENTER';
       if (deltaX < -0.42) {
@@ -846,13 +876,6 @@ export default function OpenCVProctoringWidget({
         currentGaze = 'RIGHT';
       } else if (deltaY > 0.45) {
         currentGaze = 'DOWN';
-      }
-      setGazeDirection(currentGaze);
-
-      if (currentGaze === 'CENTER') {
-        setGazeStability(98);
-      } else {
-        setGazeStability(88);
       }
 
       // Visual Alert Overlay on Canvas when Camera is Obstructed by Hand
@@ -953,7 +976,7 @@ export default function OpenCVProctoringWidget({
 
         ctx.font = 'bold 9px monospace';
         ctx.fillStyle = hudColor;
-        ctx.fillText(`FACE_ID #01: ${(currentGaze).toUpperCase()} [99.2%]`, x + 6, Math.max(12, y - 9));
+        ctx.fillText(`Face: ${currentGaze.toLowerCase()}`, x + 6, Math.max(12, y - 9));
 
         // Diagnostics telemetry in top-right HUD
         ctx.fillStyle = 'rgba(7, 27, 46, 0.85)';
@@ -963,9 +986,9 @@ export default function OpenCVProctoringWidget({
 
         ctx.font = '9px monospace';
         ctx.fillStyle = '#5CDB94';
-        ctx.fillText(`POSE: Y:${yawDeg}° P:${pitchDeg}°`, width - 142, 22);
-        ctx.fillText(`MIC: ${currentDb}dB | GAZE: ${Math.round(gazeStability)}%`, width - 142, 34);
-        ctx.fillText(`ENGINE: OPENCV V4 [${measuredFps}fps]`, width - 142, 46);
+        ctx.fillText(`Pose  Y:${yawDeg}°  P:${pitchDeg}°`, width - 142, 22);
+        ctx.fillText(`Mic ${currentDb}   gaze ${currentGaze.toLowerCase()}`, width - 142, 34);
+        ctx.fillText(`Camera loop ${displayedFps} fps`, width - 142, 46);
       }
 
       animFrameIdRef.current = requestAnimationFrame(renderLoop);
@@ -978,12 +1001,12 @@ export default function OpenCVProctoringWidget({
         cancelAnimationFrame(animFrameIdRef.current);
       }
     };
-  }, [cameraActive, hardwareState, gazeStability, measuredFps, recordViolation]);
+  }, [cameraActive, hardwareState, micActive, recordViolation]);
 
   // 5. SYNC PROCTORING SUMMARY TO PARENT PORTAL
   useEffect(() => {
-    if (onProctoringUpdate) {
-      onProctoringUpdate({
+    if (onProctoringUpdateRef.current) {
+      onProctoringUpdateRef.current({
         trustScore,
         status: trustScore >= 85 ? 'VERIFIED' : trustScore >= 70 ? 'MONITORED' : 'FLAGGED',
         totalViolations: violationsList.length,
@@ -1016,7 +1039,7 @@ export default function OpenCVProctoringWidget({
     trustScore, violationsList, gazeStability, facePresencePct,
     focusRetentionPct, cameraActive, hardwareState, hardwareErrorMsg, micActive,
     isCameraCovered, coverReason, faceDetected, liveFocusStatus, liveFaceStatus,
-    isFaceAbsentPaused, deductionsList, toggleCamera, enableVirtualMode, resumeFacePresence, stopAllMediaTracks, onProctoringUpdate
+    isFaceAbsentPaused, deductionsList, toggleCamera, enableVirtualMode, resumeFacePresence, stopAllMediaTracks
   ]);
 
   return (
@@ -1025,18 +1048,18 @@ export default function OpenCVProctoringWidget({
       <div className="flex items-center justify-between pb-2 border-b border-[#1C476E]">
         <div className="flex items-center gap-2">
           <div className="w-6 h-6 rounded-lg bg-[#5CDB94]/20 border border-[#5CDB94]/30 flex items-center justify-center">
-            <Cpu className="w-3.5 h-3.5 text-[#5CDB94] animate-spin" />
+            <Cpu className="w-3.5 h-3.5 text-[#5CDB94]" />
           </div>
           <div>
             <span className="text-xs font-bold text-white tracking-wide block leading-none">
-              OPENCV AI PROCTORING
+              Camera check
             </span>
             <span className="text-[10px] text-[#5CDB94] font-mono">
               {cameraActive && hardwareState === 'LIVE'
-                ? '● HARDWARE WEBCAM & MIC ACTIVE'
+                ? 'Webcam and mic are on'
                 : cameraActive
-                ? '● VIRTUAL SIMULATION ACTIVE'
-                : '○ WEBCAM DISCONNECTED / OFF'}
+                ? 'Using a test pattern'
+                : 'Camera is off'}
             </span>
           </div>
         </div>
