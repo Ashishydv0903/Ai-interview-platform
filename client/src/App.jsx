@@ -14,21 +14,41 @@ export default function App() {
 
   useEffect(() => {
     const savedUser = localStorage.getItem('adaptiveai_user');
+    const token = localStorage.getItem('adaptiveai_token');
     if (savedUser) {
       try {
-        setUser(JSON.parse(savedUser));
+        const parsed = JSON.parse(savedUser);
+        setUser(parsed);
+        if (token) {
+          fetch('/api/auth/verify', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          })
+            .then(res => res.json())
+            .then(data => {
+              if (data.success && data.data?.user) {
+                setUser(prev => ({ ...prev, ...data.data.user }));
+              }
+            })
+            .catch(() => {});
+        }
       } catch (e) {}
     }
   }, []);
 
   const handleLoginSuccess = (userData) => {
-    setUser(userData);
-    localStorage.setItem('adaptiveai_user', JSON.stringify(userData));
+    const userProfile = userData.user || userData;
+    const token = userData.token;
+    setUser(userProfile);
+    localStorage.setItem('adaptiveai_user', JSON.stringify(userProfile));
+    if (token) {
+      localStorage.setItem('adaptiveai_token', token);
+    }
   };
 
   const handleLogout = () => {
     setUser(null);
     localStorage.removeItem('adaptiveai_user');
+    localStorage.removeItem('adaptiveai_token');
     setCurrentSession(null);
     setActiveTab('setup');
   };
@@ -64,7 +84,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0B0F19] text-slate-100 flex flex-col font-sans">
+    <div className="min-h-screen bg-[#0B2641] text-slate-100 flex flex-col font-sans">
       <Header
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -116,9 +136,9 @@ export default function App() {
       />
 
       {/* Footer */}
-      <footer className="border-t border-slate-800/80 py-4 px-4 text-center text-xs text-slate-500 glass-card mt-auto">
+      <footer className="border-t border-[#1C476E] py-4 px-4 text-center text-xs text-slate-400 bg-[#0F3154]/50 backdrop-blur mt-auto">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
-          <p>© 2026 AdaptiveAI. Realistic Mock Interviews for Confident Candidates.</p>
+          <p className="text-slate-300 font-medium">© 2026 AdaptiveAI. Realistic Mock Interviews for Confident Candidates.</p>
           <div className="flex items-center gap-4 text-slate-400 font-sans text-xs">
             <span>Past Mock History</span> • <span>Model Solutions</span> • <span>Personalized Feedback</span>
           </div>

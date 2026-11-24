@@ -7,9 +7,10 @@ const fs = require('fs');
 const { connectDB } = require('./config/db');
 const interviewController = require('./controllers/interviewController');
 const authController = require('./controllers/authController');
+const { protect } = require('./middleware/authMiddleware');
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 
 // Connect to MongoDB Atlas (if URI configured in .env)
 connectDB();
@@ -48,6 +49,7 @@ app.get('/api/health', (req, res) => {
 // Auth Routes
 app.post('/api/auth/register', authController.register);
 app.post('/api/auth/login', authController.login);
+app.get('/api/auth/verify', protect, authController.verifyMe);
 app.get('/api/auth/me/:id', authController.getProfile);
 app.post('/api/auth/resume', authController.saveResume);
 

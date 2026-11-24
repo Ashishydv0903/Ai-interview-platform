@@ -296,6 +296,61 @@ const QUESTION_BANK = [
     expectedConcepts: ["Successive Discounts", "$144", "Percentage Calculation", "Net Price"],
     idealAnswer: "Step 1: First discount is 20% off $200. Discount = $40; new price = $160. Step 2: Second discount is 10% off the new price ($160). Discount = $16; final price = $160 - $16 = $144. (Note: Successive discounts of 20% and 10% equal an overall discount of 28%, not 30%)."
   },
+  {
+    id: "apt_06",
+    domain: "Aptitude & Reasoning",
+    role: "Aptitude & Analytical Candidate",
+    topic: "Ratios, Proportions & Mixtures",
+    difficulty: "Medium",
+    question: "A mixture contains milk and water in the ratio 7:3. If 10 liters of water is added, the new ratio becomes 7:5. What was the initial quantity of milk in the mixture?",
+    hints: ["Since only water was added, the absolute quantity of milk remains unchanged."],
+    expectedConcepts: ["Ratio", "Proportions", "35 Liters", "Algebraic Substitution", "Mixture Analysis"],
+    idealAnswer: "Let milk = 7x and water = 3x. After adding 10L water, the water becomes 3x + 10. The new ratio is 7x / (3x + 10) = 7/5. Dividing both sides by 7 gives x / (3x + 10) = 1/5, so 5x = 3x + 10, which means 2x = 10, thus x = 5. Therefore, the initial quantity of milk was 7x = 7 * 5 = 35 liters."
+  },
+  {
+    id: "apt_07",
+    domain: "Aptitude & Reasoning",
+    role: "Aptitude & Analytical Candidate",
+    topic: "Blood Relations & Family Tree Deduction",
+    difficulty: "Easy",
+    question: "Pointing to a photograph of a boy, Suresh said, 'He is the only son of my mother's only son.' How is Suresh related to the boy in the photograph?",
+    hints: ["Break down 'my mother's only son' first."],
+    expectedConcepts: ["Blood Relations", "Deduction", "Father", "Genealogy", "Direct Relation"],
+    idealAnswer: "Break the statement down from the end: Suresh's 'mother's only son' must be Suresh himself (since he is the only male child of his mother). Therefore, 'the only son of my mother's only son' means the only son of Suresh. Hence, Suresh is the father of the boy in the photograph."
+  },
+  {
+    id: "apt_08",
+    domain: "Aptitude & Reasoning",
+    role: "Aptitude & Analytical Candidate",
+    topic: "Coding-Decoding & Letter Shift Patterns",
+    difficulty: "Medium",
+    question: "In a certain code language, if the word 'SPARK' is coded as 'TQBSL', how would the word 'FLAME' be coded in that same pattern? Explain the rule.",
+    hints: ["Analyze the alphabetical position shift for each character."],
+    expectedConcepts: ["Coding-Decoding", "Letter Shift", "+1 Position", "GMBNF", "Pattern Recognition"],
+    idealAnswer: "Analyze the shift: S->T (+1), P->Q (+1), A->B (+1), R->S (+1), K->L (+1). Each letter is replaced by its immediate next alphabetical letter (+1 shift). Applying this rule to 'FLAME': F->G, L->M, A->B, M->N, E->F. Therefore, 'FLAME' is coded as 'GMBNF'."
+  },
+  {
+    id: "apt_09",
+    domain: "Aptitude & Reasoning",
+    role: "Aptitude & Analytical Candidate",
+    topic: "Number Series & Pattern Progression",
+    difficulty: "Hard",
+    question: "Find the next number in the series: 3, 7, 15, 31, 63, __? Explain the mathematical formula or pattern governing the sequence.",
+    hints: ["Look at the difference between consecutive terms, or 2^n - 1."],
+    expectedConcepts: ["Number Series", "Doubling + 1", "Geometric Growth", "127", "2^n - 1"],
+    idealAnswer: "Method 1: Each term is obtained by multiplying the previous term by 2 and adding 1: 3*2+1=7, 7*2+1=15, 15*2+1=31, 31*2+1=63. Therefore, next term = 63*2+1 = 127. Method 2: Look at successive differences: +4, +8, +16, +32 (powers of 2). Next difference is +64, so 63 + 64 = 127."
+  },
+  {
+    id: "apt_10",
+    domain: "Aptitude & Reasoning",
+    role: "Aptitude & Analytical Candidate",
+    topic: "Circular Seating Arrangement & Constraints",
+    difficulty: "Hard",
+    question: "Five friends (A, B, C, D, E) sit around a circular table facing the center. A sits immediately to the left of B. C sits between A and D. Who is sitting immediately to the right of B?",
+    hints: ["Draw the 5 circular positions clockwise."],
+    expectedConcepts: ["Circular Arrangement", "Logical Deduction", "Facing Center", "E is to the right of B", "Constraints"],
+    idealAnswer: "Since they face the center: A is immediately to the left of B (moving clockwise). C is between A and D, so the sequence clockwise from B is: B, then A, then C, then D, which leaves position E between D and B. Therefore, immediately to the right of B (moving counter-clockwise from B) is E."
+  },
 
   // ====================================================
   // --- NON-TECHNICAL: BUSINESS & MANAGEMENT (8+ Qs) ---

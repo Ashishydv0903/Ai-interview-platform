@@ -1,23 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Upload, FileText, CheckCircle2, ArrowRight, User, Save, FileUp, Lock, Clock, BookOpen, Layers, Check, Sparkles } from 'lucide-react';
+import { FileUp, Play, Sparkles, CheckCircle2, Sliders, ArrowRight, BookOpen, Clock, Target, Save, Lock, Layers } from 'lucide-react';
 
 export default function ResumeSetup({ onInterviewStart, user, onRequireAuth }) {
   const [candidateName, setCandidateName] = useState(user?.name || "");
   const [targetRole, setTargetRole] = useState("Frontend Engineer");
   const [domain, setDomain] = useState("Frontend");
   const [customSubject, setCustomSubject] = useState("");
-  
-  // Custom Interview Controls
   const [totalQuestionsPlanned, setTotalQuestionsPlanned] = useState(5);
   const [timeLimitMinutes, setTimeLimitMinutes] = useState(15);
-
-  const [resumeText, setResumeText] = useState(
-    user?.savedResumeText ||
-    `Ashish Yadav - Senior Full Stack Engineer
-Skills: React, Node.js, JavaScript, REST APIs, MongoDB, Redux.
-Experience: Developing modern web applications, state management, and full-stack solutions.`
-  );
   
+  const [resumeText, setResumeText] = useState("");
   const [parsedSkills, setParsedSkills] = useState(["React", "Node.js", "JavaScript", "REST APIs", "MongoDB"]);
   const [isParsing, setIsParsing] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -25,11 +17,25 @@ Experience: Developing modern web applications, state management, and full-stack
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [authErrorNotice, setAuthErrorNotice] = useState(false);
 
+  // Auto-load and remember resume from profile
   useEffect(() => {
     if (user) {
       setCandidateName(user.name);
       if (user.savedResumeText) {
         setResumeText(user.savedResumeText);
+        // Automatically parse skills from remembered profile resume
+        fetch('/api/resume/parse', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ resumeText: user.savedResumeText, targetRole: user.targetRole || "Candidate" })
+        })
+          .then(res => res.json())
+          .then(data => {
+            if (data.success && data.data?.skills?.length) {
+              setParsedSkills(data.data.skills);
+            }
+          })
+          .catch(() => {});
       }
       setAuthErrorNotice(false);
     } else {
@@ -61,7 +67,20 @@ Experience: Developing modern web applications, state management, and full-stack
       if (data.success) {
         if (data.data.skills?.length) setParsedSkills(data.data.skills);
         if (data.data.inferredDomain) setDomain(data.data.inferredDomain);
-        if (data.data.rawText) setResumeText(data.data.rawText);
+        if (data.data.rawText) {
+          setResumeText(data.data.rawText);
+          // Automatically save and remember resume in user profile
+          if (user?.id) {
+            fetch('/api/auth/resume', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('adaptiveai_token') || ''}`
+              },
+              body: JSON.stringify({ userId: user.id, resumeText: data.data.rawText })
+            }).then(() => setSaveSuccess(true)).catch(() => {});
+          }
+        }
       }
     } catch (err) {
       console.error("PDF upload error:", err);
@@ -82,6 +101,17 @@ Experience: Developing modern web applications, state management, and full-stack
       if (data.success) {
         if (data.data.skills?.length) setParsedSkills(data.data.skills);
         if (data.data.inferredDomain) setDomain(data.data.inferredDomain);
+        // Also auto-save to user profile
+        if (user?.id && resumeText) {
+          fetch('/api/auth/resume', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('adaptiveai_token') || ''}`
+            },
+            body: JSON.stringify({ userId: user.id, resumeText })
+          }).catch(() => {});
+        }
       }
     } catch (err) {
       console.error("Parse resume error:", err);
@@ -99,7 +129,10 @@ Experience: Developing modern web applications, state management, and full-stack
     try {
       const res = await fetch('/api/auth/resume', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('adaptiveai_token') || ''}`
+        },
         body: JSON.stringify({ userId: user.id, resumeText })
       });
       const data = await res.json();
@@ -113,35 +146,49 @@ Experience: Developing modern web applications, state management, and full-stack
   };
 
   const handleStart = async () => {
-    if (!user) {
-      setAuthErrorNotice(true);
-      if (onRequireAuth) onRequireAuth();
-      return;
+    // Determine domain-appropriate skills so Aptitude / Business / Non-tech don't receive programming keywords
+    let skillsForInterview = parsedSkills;
+    if (domain === "Aptitude & Reasoning") {
+      skillsForInterview = ["Logical Deduction", "Quantitative Aptitude", "Probability & Combinatorics", "Time and Work", "Ratios and Percentages"];
+    } else if (domain === "Business & Management") {
+      skillsForInterview = ["Product Strategy", "Unit Economics", "Stakeholder Alignment", "Prioritization Frameworks"];
+    } else if (domain === "English Communication") {
+      skillsForInterview = ["STAR Method", "De-escalation", "Executive Communication", "Client Relationship Management"];
+    } else if (domain === "Finance & Accounting") {
+      skillsForInterview = ["Financial Statements", "Working Capital", "Valuation", "Accounting Principles"];
+    } else if (domain === "Custom" && customSubject) {
+      skillsForInterview = [customSubject];
     }
 
     setIsStarting(true);
     try {
+      const activeUserId = user?.id || "guest-candidate";
+      const activeCandidateName = user?.name || candidateName || "Candidate";
+
       const res = await fetch('/api/interview/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: user.id,
-          candidateName: user.name || candidateName,
+          userId: activeUserId,
+          candidateName: activeCandidateName,
           targetRole: domain === "Custom" && customSubject ? customSubject : targetRole,
           domain,
           customSubject,
-          candidateSkills: parsedSkills,
+          candidateSkills: skillsForInterview,
           initialDifficulty: "Easy",
           totalQuestionsPlanned,
           timeLimitMinutes
         })
       });
-      const data = await res.json();
-      if (data.success && onInterviewStart) {
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.success && data.data && onInterviewStart) {
         onInterviewStart(data.data);
+      } else {
+        alert(data.message || `Unable to start interview session (HTTP ${res.status}). Please check that the server is online.`);
       }
     } catch (err) {
       console.error("Failed to start interview:", err);
+      alert("Cannot connect to backend server. Please verify that the server is running on http://localhost:5000.");
     } finally {
       setIsStarting(false);
     }
@@ -165,33 +212,53 @@ Experience: Developing modern web applications, state management, and full-stack
       <div className="text-center space-y-3">
         <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight font-['Outfit']">
           Practice realistic interviews. <br />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-indigo-300 to-cyan-400">
+          <span className="text-[#5CDB94]">
             Build real confidence.
           </span>
         </h1>
-        <p className="text-slate-400 text-sm max-w-xl mx-auto leading-relaxed">
+        <p className="text-slate-300 text-sm max-w-xl mx-auto leading-relaxed">
           Select your target role, set your preferred interview length, and practice answering realistic interview questions with personalized mentor feedback.
         </p>
       </div>
 
       {/* Guest Notice (If not logged in) */}
       {!user && (
-        <div className="p-4 bg-purple-950/30 border border-purple-500/30 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 shadow-lg">
+        <div className="p-4 bg-[#0F3154] border border-[#1C476E] rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 shadow-lg">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-purple-600/20 text-purple-300 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-[#5CDB94]/20 text-[#5CDB94] flex items-center justify-center">
               <Lock className="w-5 h-5" />
             </div>
             <div>
               <h4 className="text-sm font-bold text-white">Sign In to Save Your Progress</h4>
-              <p className="text-xs text-slate-400">Create a free account to track past mock interviews and get personal scorecards.</p>
+              <p className="text-xs text-slate-300">Create a free account to track past mock interviews, save your resume, and get personal scorecards.</p>
             </div>
           </div>
           <button
             onClick={onRequireAuth}
-            className="px-4 py-2 bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white font-bold text-xs rounded-xl transition-all shadow-md whitespace-nowrap"
+            className="px-4 py-2 bg-[#5CDB94] hover:bg-[#4CD087] text-[#0B2540] font-bold text-xs rounded-xl transition-all shadow-md whitespace-nowrap"
           >
             Sign In / Register
           </button>
+        </div>
+      )}
+
+      {/* Remembered Resume Active Banner (If logged in and resume is stored) */}
+      {user && resumeText && (
+        <div className="p-3.5 bg-[#0F3154] border border-[#5CDB94]/40 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 shadow-md">
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-[#5CDB94]/20 text-[#5CDB94] flex items-center justify-center">
+              <CheckCircle2 className="w-4 h-4" />
+            </div>
+            <div>
+              <span className="text-xs font-bold text-white">Your Resume is Remembered & Active</span>
+              <span className="text-[11px] text-[#5CDB94] block">
+                Saved for {user.name} • {parsedSkills.length} key competencies detected
+              </span>
+            </div>
+          </div>
+          <span className="text-[10px] text-slate-300 font-mono bg-[#071B2E] px-2.5 py-1 rounded-lg border border-[#1C476E]">
+            Auto-Sync Active
+          </span>
         </div>
       )}
 
@@ -201,10 +268,10 @@ Experience: Developing modern web applications, state management, and full-stack
         {/* Step 1 & 2: Role & Format */}
         <div className="md:col-span-7 space-y-6">
           {/* Card 1: Select Your Field */}
-          <div className="glass-card rounded-2xl p-6 border border-slate-800 space-y-4 shadow-lg">
-            <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
+          <div className="glass-card rounded-2xl p-6 border border-[#1C476E] space-y-4 shadow-lg">
+            <div className="flex items-center justify-between border-b border-[#1C476E] pb-3">
               <div>
-                <span className="text-xs font-bold text-purple-400 uppercase tracking-wider">Step 1</span>
+                <span className="text-xs font-bold text-[#5CDB94] uppercase tracking-wider">Step 1</span>
                 <h3 className="text-base font-bold text-white">Choose Your Field</h3>
               </div>
               <span className="text-xs text-slate-400">Select what you want to practice</span>
@@ -222,8 +289,8 @@ Experience: Developing modern web applications, state management, and full-stack
                   }}
                   className={`p-2.5 rounded-xl border text-left transition-all ${
                     domain === cat.id
-                      ? 'bg-purple-600/20 border-purple-500 text-white shadow-sm ring-1 ring-purple-500/50'
-                      : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:bg-slate-850 hover:text-slate-200'
+                      ? 'bg-[#133A63] border-[#5CDB94] text-white shadow-sm ring-2 ring-[#5CDB94]/50'
+                      : 'bg-[#0B2641]/80 border-[#1C476E] text-slate-300 hover:bg-[#0F3154] hover:text-white'
                   }`}
                 >
                   <div className="text-xs font-bold text-white truncate">{cat.name}</div>
@@ -240,16 +307,16 @@ Experience: Developing modern web applications, state management, and full-stack
                   value={customSubject}
                   onChange={e => setCustomSubject(e.target.value)}
                   placeholder="e.g. System Design, Product Analytics, Banking Quant..."
-                  className="w-full bg-slate-900 border border-purple-500/50 rounded-xl px-3.5 py-2 text-xs text-slate-100 focus:outline-none"
+                  className="w-full bg-[#071B2E] border border-[#1C476E] focus:border-[#5CDB94] rounded-xl px-3.5 py-2 text-xs text-slate-100 focus:outline-none"
                 />
               </div>
             )}
           </div>
 
           {/* Card 2: Interview Format */}
-          <div className="glass-card rounded-2xl p-6 border border-slate-800 space-y-4 shadow-lg">
-            <div className="border-b border-slate-800/80 pb-3">
-              <span className="text-xs font-bold text-cyan-400 uppercase tracking-wider">Step 2</span>
+          <div className="glass-card rounded-2xl p-6 border border-[#1C476E] space-y-4 shadow-lg">
+            <div className="border-b border-[#1C476E] pb-3">
+              <span className="text-xs font-bold text-[#5CDB94] uppercase tracking-wider">Step 2</span>
               <h3 className="text-base font-bold text-white">Interview Format & Length</h3>
             </div>
 
@@ -269,12 +336,12 @@ Experience: Developing modern web applications, state management, and full-stack
                       onClick={() => setTotalQuestionsPlanned(item.count)}
                       className={`py-2 px-1 rounded-xl border text-center transition-all ${
                         totalQuestionsPlanned === item.count
-                          ? 'bg-purple-600 border-purple-500 text-white shadow-md font-bold'
-                          : 'bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800'
+                          ? 'bg-[#5CDB94] border-[#5CDB94] text-[#0B2540] shadow-md font-bold'
+                          : 'bg-[#0B2641] border-[#1C476E] text-slate-300 hover:bg-[#0F3154]'
                       }`}
                     >
                       <div className="text-xs">{item.count} Questions</div>
-                      <div className="text-[10px] text-slate-400 mt-0.5">{item.label}</div>
+                      <div className={`text-[10px] mt-0.5 ${totalQuestionsPlanned === item.count ? 'text-[#0B2540]/80' : 'text-slate-400'}`}>{item.label}</div>
                     </button>
                   ))}
                 </div>
@@ -290,12 +357,12 @@ Experience: Developing modern web applications, state management, and full-stack
                       onClick={() => setTimeLimitMinutes(mins)}
                       className={`py-2 px-1 rounded-xl border text-center transition-all ${
                         timeLimitMinutes === mins
-                          ? 'bg-cyan-600 border-cyan-500 text-white shadow-md font-bold'
-                          : 'bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800'
+                          ? 'bg-[#5CDB94] border-[#5CDB94] text-[#0B2540] shadow-md font-bold'
+                          : 'bg-[#0B2641] border-[#1C476E] text-slate-300 hover:bg-[#0F3154]'
                       }`}
                     >
                       <div className="text-xs font-semibold">{mins} Mins</div>
-                      <div className="text-[10px] text-slate-400 mt-0.5">Duration</div>
+                      <div className={`text-[10px] mt-0.5 ${timeLimitMinutes === mins ? 'text-[#0B2540]/80' : 'text-slate-400'}`}>{mins === 5 ? "Quick" : mins === 30 ? "Deep" : "Duration"}</div>
                     </button>
                   ))}
                 </div>
@@ -305,26 +372,26 @@ Experience: Developing modern web applications, state management, and full-stack
         </div>
 
         {/* Step 3: Resume & Start Button */}
-        <div className="md:col-span-5 glass-card rounded-2xl p-6 border border-slate-800 flex flex-col justify-between shadow-lg space-y-4">
+        <div className="md:col-span-5 glass-card rounded-2xl p-6 border border-[#1C476E] flex flex-col justify-between shadow-lg space-y-4">
           <div className="space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
+            <div className="flex items-center justify-between border-b border-[#1C476E] pb-3">
               <div>
-                <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">Step 3</span>
+                <span className="text-xs font-bold text-[#5CDB94] uppercase tracking-wider">Step 3</span>
                 <h3 className="text-base font-bold text-white">Your Background</h3>
               </div>
               {user && (
                 <button
                   onClick={handleSaveResumeToProfile}
-                  className="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 text-xs rounded-lg flex items-center gap-1 transition-all"
+                  className="px-2.5 py-1 bg-[#0B2641] hover:bg-[#0F3154] border border-[#1C476E] text-slate-200 text-xs rounded-lg flex items-center gap-1 transition-all"
                 >
-                  <Save className="w-3 h-3 text-cyan-400" />
+                  <Save className="w-3 h-3 text-[#5CDB94]" />
                   {saveSuccess ? "Saved!" : "Save"}
                 </button>
               )}
             </div>
 
             {/* Friendly Drag and Drop Zone */}
-            <div className="relative border-2 border-dashed border-slate-800 hover:border-purple-500/50 rounded-xl p-4 text-center bg-slate-950/60 transition-all cursor-pointer">
+            <div className="relative border-2 border-dashed border-[#1C476E] hover:border-[#5CDB94]/60 rounded-xl p-4 text-center bg-[#071B2E]/60 transition-all cursor-pointer">
               <input
                 type="file"
                 accept=".pdf,.txt"
@@ -332,11 +399,11 @@ Experience: Developing modern web applications, state management, and full-stack
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
               />
               <div className="flex flex-col items-center justify-center space-y-1.5">
-                <FileUp className="w-6 h-6 text-purple-400" />
+                <FileUp className="w-6 h-6 text-[#5CDB94]" />
                 <span className="text-xs font-semibold text-slate-200">
                   {isUploading ? "Reading your resume..." : "Upload Resume PDF (Optional)"}
                 </span>
-                <span className="text-[11px] text-slate-500">We'll tailor interview questions to your experience</span>
+                <span className="text-[11px] text-slate-400">We remember your resume across all mock interviews</span>
               </div>
             </div>
 
@@ -347,7 +414,7 @@ Experience: Developing modern web applications, state management, and full-stack
                 value={resumeText}
                 onChange={e => setResumeText(e.target.value)}
                 rows={4}
-                className="w-full bg-slate-950/90 border border-slate-800 rounded-xl p-3 text-xs text-slate-200 font-sans focus:outline-none focus:border-purple-500 leading-relaxed"
+                className="w-full bg-[#071B2E] border border-[#1C476E] focus:border-[#5CDB94] rounded-xl p-3 text-xs text-slate-200 font-sans focus:outline-none leading-relaxed"
                 placeholder="e.g. React, Node.js, System Design, SQL, Problem Solving..."
               />
             </div>
@@ -356,12 +423,12 @@ Experience: Developing modern web applications, state management, and full-stack
             <div className="space-y-1.5">
               <div className="flex items-center justify-between text-xs">
                 <span className="font-semibold text-slate-300 flex items-center gap-1 text-[11px]">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> Key Topics Covered:
+                  <CheckCircle2 className="w-3.5 h-3.5 text-[#5CDB94]" /> Key Topics Covered:
                 </span>
                 <button
                   onClick={handleParseResumeText}
                   disabled={isParsing}
-                  className="text-purple-400 hover:text-purple-300 text-[11px] font-semibold"
+                  className="text-[#5CDB94] hover:underline text-[11px] font-semibold"
                 >
                   {isParsing ? "Updating..." : "Refresh Topics"}
                 </button>
@@ -370,7 +437,7 @@ Experience: Developing modern web applications, state management, and full-stack
                 {parsedSkills.map((sk, idx) => (
                   <span
                     key={idx}
-                    className="px-2.5 py-1 rounded-lg bg-purple-500/10 border border-purple-500/20 text-purple-300 text-xs font-medium"
+                    className="px-2.5 py-1 rounded-lg bg-[#5CDB94]/15 border border-[#5CDB94]/30 text-[#5CDB94] text-xs font-semibold"
                   >
                     {sk}
                   </span>
@@ -384,20 +451,27 @@ Experience: Developing modern web applications, state management, and full-stack
             <button
               onClick={handleStart}
               disabled={isStarting}
-              className={`w-full py-3.5 font-bold rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all text-sm ${
-                !user
-                  ? 'bg-slate-800 text-slate-400 hover:bg-slate-700 border border-slate-700'
-                  : 'bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white shadow-purple-600/30'
-              }`}
+              className="w-full py-3.5 font-extrabold rounded-2xl shadow-xl flex items-center justify-center gap-2 transition-all text-sm bg-[#5CDB94] hover:bg-[#4CD087] text-[#0B2540] shadow-[#5CDB94]/25 active:scale-[0.99] cursor-pointer"
             >
-              {!user ? <Lock className="w-4 h-4 text-amber-400" /> : <Sparkles className="w-4 h-4" />}
+              <Sparkles className="w-4 h-4 text-[#0B2540]" />
               {isStarting
                 ? "Preparing your interview..."
-                : !user
-                ? "Sign In to Start Mock"
                 : `Start Mock (${totalQuestionsPlanned} Questions • ${timeLimitMinutes} Mins)`}
-              <ArrowRight className="w-4 h-4" />
+              <ArrowRight className="w-4 h-4 text-[#0B2540]" />
             </button>
+            {!user && (
+              <p className="text-[11px] text-slate-400 text-center mt-2">
+                Practicing in Guest Mode.{" "}
+                <button
+                  type="button"
+                  onClick={onRequireAuth}
+                  className="text-[#5CDB94] hover:underline font-semibold"
+                >
+                  Sign in or Register
+                </button>{" "}
+                to save your results & scorecard to your profile.
+              </p>
+            )}
           </div>
         </div>
 

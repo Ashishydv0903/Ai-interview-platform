@@ -25,8 +25,13 @@ An intelligent, full-stack mock interview platform designed for students and job
 6. **💻 Integrated Live Code Sandbox**
    - Embedded JavaScript / React code playground directly inside technical coding questions with real-time browser execution.
 
-7. **📹 Proctoring & Speech Dictation HUD**
-   - Real-time webcam attention monitoring simulation, voice pitch & pace analyzer, and Web Speech API voice dictation for hands-free answering.
+7. **📹 Production OpenCV AI Proctoring & Candidate Verification**
+   - **Real-Time Face Presence Verification**: High-performance photometric and skin chrominance computer vision engine with universal Fitzpatrick I-VI coverage. Automatically detects empty-chair departures and pauses response inputs after 4s absence.
+   - **Camera Obstruction & Hand-Coverage Defense**: Detects lens blocking, macro blurring, and hands covering the webcam sensor.
+   - **Tab-Switching & Window Blur Audit Trail**: Monitors page visibility, window blur/focus events, and duration away from the assessment window with itemized trust score deductions.
+   - **Real-Time Hardware Mic Status**: Synchronizes live with WebRTC audio tracks, detecting OS-level mutes and headset disconnects.
+   - **Transparent Integrity Dashboard**: Real-time telemetry displaying Face Presence %, Focus Retention %, Tab Switch Count, Device Health, and chronological audit logs.
+   - **Speech Dictation & Audio HUD**: Voice volume telemetry and Web Speech API dictation for hands-free answering.
 
 ---
 
@@ -34,8 +39,34 @@ An intelligent, full-stack mock interview platform designed for students and job
 
 - **Frontend**: React 18, Vite, Tailwind CSS, Lucide Icons, Recharts, Canvas Confetti, HTML2PDF.js
 - **Backend**: Node.js, Express.js REST API
+- **Authentication**: JSON Web Tokens (JWT, `jsonwebtoken`) with secure password hashing (`bcryptjs`)
 - **AI & NLP**: Google Gemini AI (`@google/generative-ai`), Natural Language Processing, TF-IDF / Semantic Concept Coverage
 - **Database**: MongoDB (Mongoose) with automatic zero-dependency local JSON fallback (`server/data/`)
+
+---
+
+## 🔑 Environment Variables Setup (`server/.env`)
+
+Configure your `server/.env` file with MongoDB, Gemini AI, and JWT Authentication secret:
+
+```env
+PORT=5001
+
+# Optional MongoDB Atlas Connection String (leave empty for automatic local storage fallback):
+MONGODB_URI=
+
+# Google Gemini API key (from https://aistudio.google.com/):
+GEMINI_API_KEY=your_gemini_api_key_here
+
+# JWT Authentication Secret Key (used to sign candidate tokens):
+JWT_SECRET=your_super_secret_jwt_key_change_in_production
+```
+
+### 🔒 JWT Authentication Features
+- **Stateless Tokens**: Signs secure 7-day expiration JSON Web Tokens containing user ID, email, and role.
+- **Password Security**: Passwords are encrypted using salted `bcryptjs` hashes before database storage.
+- **Protected Endpoints**: Verified using the `protect` middleware via `Authorization: Bearer <token>` HTTP header.
+- **Session Verification**: Dedicated `/api/auth/verify` endpoint verifies existing sessions seamlessly.
 
 ---
 
@@ -97,7 +128,7 @@ In **Terminal 1** (Start Backend):
 cd server
 npm start
 ```
-*Backend runs at `http://localhost:5000`*
+*Backend runs at `http://localhost:5001`*
 
 In **Terminal 2** (Start Frontend):
 ```bash

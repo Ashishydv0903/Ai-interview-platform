@@ -1,38 +1,60 @@
 /**
- * Explainable AI (XAI) & Human-Friendly Skill Gap Analysis Engine
- * Generates transparent, coach-like scoring justifications, intuitive skill mastery metrics,
- * and actionable remedial learning roadmaps.
+ * Explainable AI (XAI) & Human Mentor Scorecard Engine
+ * Generates transparent, human-readable breakdowns and constructive feedback.
  */
 
+/**
+ * Generate transparent XAI explanation for an individual answer evaluation
+ */
 function generateXAIExplanation({ questionObj, answer, semanticResult, difficulty }) {
-  const { score, matchedConcepts, missingConcepts, conceptCoveragePercent, depthScore, clarityScore } = semanticResult;
+  const score = semanticResult.score;
+  const matched = semanticResult.matchedConcepts || [];
+  const missing = semanticResult.missingConcepts || [];
+
+  let highlightTag = "NEEDS_IMPROVEMENT";
+  if (score >= 80) highlightTag = "EXEMPLARY";
+  else if (score >= 60) highlightTag = "PROFICIENT";
 
   let rationale = "";
-  let highlightTag = "GOOD";
-
   if (score >= 80) {
-    highlightTag = "EXCELLENT";
-    rationale = `Terrific response! You articulated core principles like ${matchedConcepts.join(", ")} with great clarity. Your answer demonstrated practical fluency and logical structuring.`;
-  } else if (score >= 60) {
-    highlightTag = "SATISFACTORY";
-    rationale = `Solid foundational response covering key points (${matchedConcepts.join(", ")}). To make this an interview-winning answer, touch upon: ${missingConcepts.join(", ")} and cite a quick real-world trade-off.`;
+    rationale = `Great job! Your answer was clear, direct, and hit the core concepts well: ${matched.slice(0, 4).join(', ')}.`;
+  } else if (score >= 50) {
+    rationale = `Solid start! You covered ${matched.join(', ')} nicely. To get a top score, also mention ${missing.slice(0, 3).join(', ')} and provide a short practical example.`;
+  } else if (score > 15) {
+    rationale = `You touched on the basic idea, but interviewers look for more depth. Next time, try to explicitly explain: ${missing.slice(0, 4).join(', ')}.`;
   } else {
-    highlightTag = "NEEDS_IMPROVEMENT";
-    rationale = `Good attempt, but the explanation remained surface-level. You mentioned: ${matchedConcepts.length > 0 ? matchedConcepts.join(", ") : "a few basic ideas"}. Try expanding on: ${missingConcepts.join(", ")} with concrete examples.`;
+    rationale = `This response was too brief or off-topic. In a real interview, be sure to explain: ${missing.slice(0, 4).join(', ')} with a clear example.`;
   }
 
   const breakdown = [
-    { metric: "Core Concept Coverage", score: conceptCoveragePercent, weight: "50%", description: `Covered ${matchedConcepts.length} out of ${matchedConcepts.length + missingConcepts.length} essential concepts.` },
-    { metric: "Depth & Technical Reasoning", score: depthScore, weight: "30%", description: `${semanticResult.wordCount || 0} words evaluated for technical substance & reasoning.` },
-    { metric: "Articulation & Delivery", score: clarityScore, weight: "20%", description: `Low filler words (${semanticResult.fillerCount || 0}) with clear, confident sentence structure.` }
+    {
+      metric: "Key Concepts Covered",
+      score: semanticResult.conceptCoveragePercent || 0,
+      weight: "50%",
+      description: matched.length > 0
+        ? `Mentioned ${matched.length} out of ${(matched.length + missing.length)} important points.`
+        : "Did not mention the expected key concepts for this topic."
+    },
+    {
+      metric: "Answer Detail & Reasoning",
+      score: semanticResult.depthScore || 0,
+      weight: "30%",
+      description: `${semanticResult.wordCount || 0} words provided to explain your reasoning.`
+    },
+    {
+      metric: "Clarity & Delivery",
+      score: semanticResult.clarityScore || 0,
+      weight: "20%",
+      description: semanticResult.score > 20
+        ? "Clear sentence structure with confident tone and minimal filler words."
+        : "Answer was brief or lacked structured explanation."
+    }
   ];
 
   return {
     score,
     highlightTag,
     rationale,
-    matchedConcepts,
-    missingConcepts,
     breakdown
   };
 }
@@ -40,7 +62,7 @@ function generateXAIExplanation({ questionObj, answer, semanticResult, difficult
 /**
  * Generate Human-Friendly Skill Gap Analysis & Coach Scorecard
  */
-function generateSkillGapAnalysis({ candidateSkills, targetRole, sessionEvaluations }) {
+function generateSkillGapAnalysis({ candidateSkills, targetRole, sessionEvaluations, isEarlyExit = false, totalQuestionsPlanned = 5 }) {
   const categoryScores = {
     "Core Technical Knowledge": [],
     "Problem Solving & Logic": [],
@@ -49,19 +71,19 @@ function generateSkillGapAnalysis({ candidateSkills, targetRole, sessionEvaluati
     "Communication & Articulation": []
   };
 
-  sessionEvaluations.forEach(item => {
-    const s = item.evaluation?.score || 65;
-    const clarity = item.evaluation?.clarityScore || 70;
-    const depth = item.evaluation?.depthScore || 70;
+  (sessionEvaluations || []).forEach(item => {
+    const s = item.evaluation?.score ?? 0;
+    const clarity = item.evaluation?.clarityScore ?? 0;
+    const depth = item.evaluation?.depthScore ?? 0;
 
     categoryScores["Core Technical Knowledge"].push(s);
-    categoryScores["Problem Solving & Logic"].push(depth);
-    categoryScores["Architecture & Best Practices"].push(Math.round((s + depth) / 2));
+    categoryScores["Problem Solving & Logic"].push(s > 15 ? depth : Math.min(10, depth));
+    categoryScores["Architecture & Best Practices"].push(s > 15 ? Math.round((s + depth) / 2) : Math.min(10, s));
     categoryScores["Code Quality & Structure"].push(s);
-    categoryScores["Communication & Articulation"].push(clarity);
+    categoryScores["Communication & Articulation"].push(s > 15 ? clarity : Math.min(20, clarity));
   });
 
-  const average = arr => arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : 70;
+  const average = arr => arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : 0;
 
   const coreScore = average(categoryScores["Core Technical Knowledge"]);
   const problemScore = average(categoryScores["Problem Solving & Logic"]);
@@ -69,69 +91,88 @@ function generateSkillGapAnalysis({ candidateSkills, targetRole, sessionEvaluati
   const codeScore = average(categoryScores["Code Quality & Structure"]);
   const commScore = average(categoryScores["Communication & Articulation"]);
 
-  const overallAvgScore = Math.round((coreScore + problemScore + archScore + codeScore + commScore) / 5);
+  const hasEvaluations = (sessionEvaluations || []).length > 0;
+  const overallAvgScore = hasEvaluations ? Math.round((coreScore + problemScore + archScore + codeScore + commScore) / 5) : 0;
 
   let readinessTier = "Job Ready";
   let humanSummary = "";
-  if (overallAvgScore >= 80) {
-    readinessTier = "Strong Candidate (Interview Ready)";
-    humanSummary = `Outstanding mock performance! You demonstrated clear, confident command of ${targetRole || 'domain'} concepts. Your technical reasoning was structured and articulate. With just a brief review of the suggested topics below, you are primed to excel in actual screening rounds.`;
+  if (!hasEvaluations) {
+    readinessTier = "Early Exit (No Responses)";
+    humanSummary = "You exited the interview before completing any questions. You can start a new mock interview anytime!";
+  } else if (overallAvgScore >= 80) {
+    readinessTier = isEarlyExit ? "Ready for Real Interviews (Early Exit)" : "Ready for Real Interviews";
+    humanSummary = `Awesome performance! You spoke with confidence and clearly understood your topic. Your answers had great structure and hit the key points. Review the few quick notes below and you will do great in actual job interviews!`;
   } else if (overallAvgScore >= 65) {
-    readinessTier = "Interview Ready (Minor Skill Gaps)";
-    humanSummary = `Great effort! You hold a solid grasp of fundamental principles and communicated your thought process well. To stand out among top candidates, focus on providing deeper architectural trade-offs and addressing the highlighted missing concepts before high-stakes interviews.`;
+    readinessTier = isEarlyExit ? "Almost Ready (Early Exit)" : "Almost Ready (Quick Brush-Up)";
+    humanSummary = `Great effort! You know your fundamentals well and explained your thoughts in a natural way. To stand out even more, practice adding a quick real-world example to your answers and check the tips below.`;
+  } else if (overallAvgScore >= 40) {
+    readinessTier = isEarlyExit ? "Good Practice (Early Exit)" : "Good Practice Attempt";
+    humanSummary = `Good start! You have the basic idea, but interviewers will look for more specific terms and details. Check the sample answers and practice plan below to quickly build your confidence.`;
   } else {
-    readinessTier = "Needs Core Revision";
-    humanSummary = `Good initial practice session! You have the basics down, but several technical questions required more specific terminology and depth. Follow the personalized 7-day revision roadmap below to rapidly build confidence in those target areas.`;
+    readinessTier = isEarlyExit ? "Review Recommended (Early Exit)" : "Practice & Review Recommended";
+    humanSummary = `A few answers were very short or missed the core concepts. That is completely normal when starting out! Take a look at the model answers below to see how to structure your answers next time.`;
+  }
+
+  if (isEarlyExit && hasEvaluations) {
+    humanSummary = `Partial interview completed: You answered ${sessionEvaluations.length} of ${totalQuestionsPlanned} planned questions. ${humanSummary}`;
   }
 
   // Human-friendly Skill Breakdown cards
   const skillsBreakdown = [
     {
-      subject: "Core Technical Knowledge",
+      subject: "Core Domain Knowledge",
       score: coreScore,
       benchmark: 80,
-      status: coreScore >= 80 ? "Mastered" : coreScore >= 65 ? "Proficient" : "Needs Review",
+      status: coreScore >= 80 ? "Mastered" : coreScore >= 60 ? "Proficient" : "Needs Review",
       mentorFeedback: coreScore >= 80 
-        ? "Exemplary grasp of language features and runtime mechanics." 
-        : coreScore >= 65 
-        ? "Good fundamentals; solidify edge-case definitions and modern best practices." 
-        : "Revisit core documentation and fundamental syntax patterns."
+        ? "Exemplary grasp of core domain terminology and fundamental mechanics." 
+        : coreScore >= 60 
+        ? "Good fundamentals; solidify edge-case definitions and best practices." 
+        : "Revisit core documentation and fundamental concepts."
     },
     {
       subject: "Problem Solving & Logic",
       score: problemScore,
       benchmark: 75,
-      status: problemScore >= 75 ? "Mastered" : problemScore >= 65 ? "Proficient" : "Needs Review",
+      status: problemScore >= 75 ? "Mastered" : problemScore >= 60 ? "Proficient" : "Needs Review",
       mentorFeedback: problemScore >= 75 
         ? "Approached problems with structured reasoning and clear deduction." 
-        : "Good problem-solving instinct; practice breaking down complex edge cases aloud."
+        : problemScore >= 60
+        ? "Good problem-solving instinct; practice breaking down complex edge cases aloud."
+        : "Practice methodical step-by-step problem breakdown."
     },
     {
-      subject: "Architecture & Design",
+      subject: "Architecture & Standards",
       score: archScore,
       benchmark: 75,
-      status: archScore >= 75 ? "Mastered" : archScore >= 65 ? "Proficient" : "Needs Review",
+      status: archScore >= 75 ? "Mastered" : archScore >= 60 ? "Proficient" : "Needs Review",
       mentorFeedback: archScore >= 75 
-        ? "Strong architectural awareness and modular thinking." 
-        : "Focus on discussing scalability, caching, and state management trade-offs."
+        ? "Strong structural awareness and trade-off evaluation." 
+        : archScore >= 60
+        ? "Focus on discussing scalability, trade-offs, and alternative approaches."
+        : "Study standard architectural patterns and design principles."
     },
     {
-      subject: "Code Quality & Precision",
+      subject: "Answer Precision & Rigor",
       score: codeScore,
       benchmark: 80,
-      status: codeScore >= 80 ? "Mastered" : codeScore >= 65 ? "Proficient" : "Needs Review",
+      status: codeScore >= 80 ? "Mastered" : codeScore >= 60 ? "Proficient" : "Needs Review",
       mentorFeedback: codeScore >= 80 
-        ? "Clean code structure and idiomatic naming conventions." 
-        : "Solid structure; remember to explicitly mention error handling and validation."
+        ? "Precise, well-organized answers with exact domain terminology." 
+        : codeScore >= 60
+        ? "Solid structure; remember to explicitly mention verification and validation."
+        : "Ensure responses directly address the specific prompt asked."
     },
     {
       subject: "Communication & Articulation",
       score: commScore,
       benchmark: 85,
-      status: commScore >= 85 ? "Mastered" : commScore >= 70 ? "Proficient" : "Needs Review",
+      status: commScore >= 85 ? "Mastered" : commScore >= 65 ? "Proficient" : "Needs Review",
       mentorFeedback: commScore >= 85 
-        ? "Spoke concisely with minimal filler words and clear pacing." 
-        : "Good conversational tone; structure answers using the STAR method for maximum impact."
+        ? "Clear delivery with minimal filler words and structured pacing." 
+        : commScore >= 65
+        ? "Good conversational tone; structure answers using the STAR method for maximum impact."
+        : "Focus on articulating concise, coherent explanations without rambling."
     }
   ];
 
@@ -145,35 +186,36 @@ function generateSkillGapAnalysis({ candidateSkills, targetRole, sessionEvaluati
 
   // Aggregate missing concepts across evaluations
   const allMissingConcepts = [];
-  sessionEvaluations.forEach(item => {
+  (sessionEvaluations || []).forEach(item => {
     if (item.evaluation?.missingConcepts && Array.isArray(item.evaluation.missingConcepts)) {
       allMissingConcepts.push(...item.evaluation.missingConcepts);
     }
   });
   const uniqueMissing = Array.from(new Set(allMissingConcepts));
-  const missingConcepts = uniqueMissing.length > 0 ? uniqueMissing.slice(0, 5) : ["Event Loop Microtasks", "Error Boundary Patterns"];
+  const missingConcepts = uniqueMissing.length > 0 ? uniqueMissing.slice(0, 5) : ["Core Problem Decomposition", "Edge-case Handling"];
 
   // Top Strengths & Concrete Next Steps
   const strengths = [];
-  if (coreScore >= 70) strengths.push("Strong grasp of foundational syntax and terminology");
-  if (commScore >= 75) strengths.push("Clear, confident articulation with structured pacing");
-  if (problemScore >= 70) strengths.push("Logical reasoning when walking through problem constraints");
-  if (strengths.length === 0) strengths.push("Demonstrated active attempt across all adaptive questions");
+  if (coreScore >= 65) strengths.push("Sound grasp of foundational syntax and terminology");
+  if (commScore >= 70) strengths.push("Structured pacing and clear conversational articulation");
+  if (problemScore >= 65) strengths.push("Logical reasoning when walking through problem constraints");
+  if (strengths.length === 0) strengths.push("Good initiative to practice under timed interview conditions");
 
   const improvementAreas = [];
-  if (archScore < 75) improvementAreas.push("Elaborate more on architectural trade-offs (e.g. caching, latency, scalability)");
-  if (uniqueMissing.length > 0) improvementAreas.push(`Review key domain concepts: ${uniqueMissing.slice(0, 3).join(", ")}`);
-  if (commScore < 75) improvementAreas.push("Structure answers with the STAR (Situation, Task, Action, Result) method");
-  if (improvementAreas.length === 0) improvementAreas.push("Practice timed mock coding to reduce answer retrieval latency");
+  if (coreScore < 70) improvementAreas.push(`Deepen core theoretical understanding of ${targetRole || 'domain'} concepts`);
+  if (problemScore < 70) improvementAreas.push("Walk through complex problems step-by-step before concluding");
+  if (archScore < 70) improvementAreas.push("Explicitly discuss trade-offs, constraints, and alternative choices");
+  if (commScore < 70) improvementAreas.push("Structure verbal responses cleanly using the STAR method");
+  if (improvementAreas.length === 0) improvementAreas.push("Continue practicing under timed constraints to build speed");
 
-  // Learning Roadmap
-  const learningRoadmap = missingConcepts.map((concept, idx) => ({
+  // Dynamic Learning Roadmap based on missed concepts
+  const learningRoadmap = missingConcepts.slice(0, 4).map((concept, idx) => ({
     step: idx + 1,
     topic: concept,
-    priority: idx === 0 ? "High Priority" : idx === 1 ? "Recommended" : "Good to Know",
-    actionPlan: `Spend 30 minutes reading the official documentation for ${concept}. Implement a short code example to cement muscle memory.`,
-    estimatedHours: `${1 + (idx % 2)} Hour`,
-    resourceUrl: `https://developer.mozilla.org/en-US/search?q=${encodeURIComponent(concept)}`
+    priority: idx === 0 ? "High Priority" : "Recommended",
+    actionPlan: `Review key documentation and best practices for ${concept}. Practice explaining the concept and solving a practice problem.`,
+    estimatedHours: `${idx + 1}-${idx + 2} Hours`,
+    resourceUrl: `https://www.google.com/search?q=${encodeURIComponent(concept + ' interview explanation')}`
   }));
 
   return {

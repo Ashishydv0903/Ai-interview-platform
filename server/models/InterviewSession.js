@@ -56,6 +56,41 @@ const EvaluationSchema = new mongoose.Schema({
   }
 });
 
+/* >>> CHANGED: START — define schemas for the active question and AI question bank.
+ * These fields must be declared explicitly because Mongoose strict mode
+ * otherwise drops them when a session is saved to MongoDB.
+ */
+const QuestionSchema = new mongoose.Schema({
+  id: { type: String, required: true },
+  domain: { type: String, default: 'General' },
+  role: { type: String, default: 'General Candidate' },
+  topic: { type: String, default: 'General' },
+  difficulty: {
+    type: String,
+    enum: ['Easy', 'Medium', 'Hard', 'Expert'],
+    default: 'Easy'
+  },
+  question: { type: String, required: true },
+  expectedConcepts: { type: [String], default: [] },
+  hints: { type: [String], default: [] },
+  idealAnswer: { type: String, default: '' },
+  codeTemplate: { type: String, default: '' }
+}, { _id: false });
+
+const GeminiQuestionSchema = new mongoose.Schema({
+  question: { type: String, required: true },
+  topic: { type: String, default: 'General' },
+  difficulty: {
+    type: String,
+    enum: ['Easy', 'Medium', 'Hard', 'Expert'],
+    default: 'Easy'
+  },
+  expectedConcepts: { type: [String], default: [] },
+  hints: { type: [String], default: [] },
+  idealAnswer: { type: String, default: '' }
+}, { _id: false });
+// <<< CHANGED: END — question schemas.
+
 /**
  * MongoDB Interview Session Schema
  * 
@@ -101,6 +136,18 @@ const InterviewSessionSchema = new mongoose.Schema(
       type: String,
       default: 'Easy'
     },
+    /* >>> CHANGED: START — persist the current question and generated question bank.
+     * Without these declared fields, Mongoose strict mode strips them from MongoDB.
+     */
+    currentQuestion: {
+      type: QuestionSchema,
+      default: null
+    },
+    geminiQuestions: {
+      type: [GeminiQuestionSchema],
+      default: []
+    },
+    // <<< CHANGED: END — persisted question fields.
     totalQuestionsPlanned: {
       type: Number,
       default: 5
@@ -114,41 +161,25 @@ const InterviewSessionSchema = new mongoose.Schema(
       enum: ['IN_PROGRESS', 'COMPLETED', 'ABANDONED'],
       default: 'IN_PROGRESS'
     },
+    // Required by evaluateAndNext to retrieve the active question from MongoDB.
+    currentQuestion: {
+      type: QuestionSchema,
+      default: null
+    },
+    // Keep Gemini's generated question sequence so sessions longer than four
+    // questions can continue using the adaptive question bank.
+    geminiQuestions: {
+      type: [GeminiQuestionSchema],
+      default: []
+    },
     evaluations: [EvaluationSchema],
     finalReport: {
-      overallScore: { type: Number, default: 0 },
-      readinessTier: { type: String, default: 'Needs Review' },
-      humanSummary: { type: String, default: '' },
-      strengths: [String],
-      improvementAreas: [String],
-      radarData: [
-        {
-          subject: String,
-          Candidate: Number,
-          TargetBenchmark: Number,
-          explanation: String
-        }
-      ],
-      skillsBreakdown: [
-        {
-          subject: String,
-          score: Number,
-          benchmark: Number,
-          status: String,
-          mentorFeedback: String
-        }
-      ],
-      missingConcepts: [String],
-      learningRoadmap: [
-        {
-          step: Number,
-          topic: String,
-          priority: String,
-          actionPlan: String,
-          estimatedHours: String,
-          resourceUrl: String
-        }
-      ]
+      type: mongoose.Schema.Types.Mixed,
+      default: {}
+    },
+    proctoringSummary: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {}
     },
     completedAt: {
       type: Date,

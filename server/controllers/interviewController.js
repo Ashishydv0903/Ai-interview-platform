@@ -89,11 +89,9 @@ exports.startInterview = async (req, res) => {
       createdAt: new Date().toISOString()
     };
 
-    // Attempt Gemini AI Question generation if API key is present
+    // Attempt Gemini AI Question generation tailored to selected domain
     let geminiQuestions = null;
-    if (candidateSkills && candidateSkills.length > 0) {
-      geminiQuestions = await generateQuestionsWithGemini(candidateSkills, candidateDomain);
-    }
+    geminiQuestions = await generateQuestionsWithGemini(candidateSkills || [], candidateDomain, customSubject);
 
     if (geminiQuestions && geminiQuestions.length > 0) {
       session.geminiQuestions = geminiQuestions;
@@ -120,6 +118,15 @@ exports.startInterview = async (req, res) => {
       session.currentDifficulty = adaptiveResult.nextDifficulty;
     }
 
+    // Guarantee currentQuestion is never null
+    if (!session.currentQuestion) {
+      const { QUESTION_BANK } = require('../data/questionBank');
+      const { getEligibleQuestions } = require('../services/adaptiveEngine');
+      const eligible = getEligibleQuestions(candidateDomain);
+      session.currentQuestion = eligible[0] || QUESTION_BANK[0];
+      session.currentDifficulty = session.currentQuestion.difficulty || "Easy";
+    }
+
     await storage.saveSession(session);
 
     return res.json({
@@ -144,11 +151,39 @@ exports.startInterview = async (req, res) => {
  */
 exports.evaluateAndNext = async (req, res) => {
   try {
-    const { sessionId, answer, timeSpentSeconds, isCodeSandboxAnswer, codeSnippet } = req.body;
+    const { sessionId, answer, timeSpentSeconds, isCodeSandboxAnswer, codeSnippet, proctoringSummary } = req.body;
 
     const session = await storage.getSessionById(sessionId);
     if (!session) {
       return res.status(404).json({ success: false, message: "Session not found." });
+    }
+
+    const maxQuestions = parseInt(session.totalQuestionsPlanned) || 5;
+
+    // Gracefully handle case where session is already completed
+    if (session.status === 'COMPLETED' || (session.evaluations && session.evaluations.length >= maxQuestions)) {
+      if (!session.finalReport) {
+        session.finalReport = generateSkillGapAnalysis({
+          candidateSkills: session.candidateSkills,
+          targetRole: session.targetRole,
+          sessionEvaluations: session.evaluations || [],
+          totalQuestionsPlanned: maxQuestions
+        });
+      }
+      if (proctoringSummary) {
+        session.proctoringSummary = proctoringSummary;
+        session.finalReport.proctoringSummary = proctoringSummary;
+      }
+      await storage.saveSession(session);
+      return res.json({
+        success: true,
+        data: {
+          isCompleted: true,
+          nextQuestion: null,
+          finalReport: session.finalReport,
+          session
+        }
+      });
     }
 
     const currentQ = session.currentQuestion;
@@ -222,7 +257,6 @@ exports.evaluateAndNext = async (req, res) => {
     session.evaluations = session.evaluations || [];
     session.evaluations.push(evalRecord);
 
-    const maxQuestions = parseInt(session.totalQuestionsPlanned) || 5;
     const isCompleted = session.evaluations.length >= maxQuestions;
 
     if (!isCompleted) {
@@ -253,6 +287,13 @@ exports.evaluateAndNext = async (req, res) => {
         session.currentQuestion = adaptiveResult.question;
         session.currentDifficulty = adaptiveResult.nextDifficulty;
       }
+
+      // Failsafe guarantee: currentQuestion is never null while interview is still in progress
+      if (!session.currentQuestion) {
+        const { QUESTION_BANK } = require('../data/questionBank');
+        session.currentQuestion = QUESTION_BANK[session.evaluations.length % QUESTION_BANK.length];
+        session.currentDifficulty = session.currentQuestion.difficulty;
+      }
     } else {
       session.currentQuestion = null;
       session.status = "COMPLETED";
@@ -262,8 +303,13 @@ exports.evaluateAndNext = async (req, res) => {
       session.finalReport = generateSkillGapAnalysis({
         candidateSkills: session.candidateSkills,
         targetRole: session.targetRole,
-        sessionEvaluations: session.evaluations
+        sessionEvaluations: session.evaluations,
+        totalQuestionsPlanned: maxQuestions
       });
+      if (proctoringSummary) {
+        session.proctoringSummary = proctoringSummary;
+        session.finalReport.proctoringSummary = proctoringSummary;
+      }
     }
 
     await storage.saveSession(session);
@@ -292,7 +338,7 @@ exports.evaluateAndNext = async (req, res) => {
  */
 exports.finalizeSession = async (req, res) => {
   try {
-    const { sessionId } = req.body;
+    const { sessionId, proctoringSummary, isEarlyExit } = req.body;
     const session = await storage.getSessionById(sessionId);
 
     if (!session) {
@@ -302,9 +348,18 @@ exports.finalizeSession = async (req, res) => {
     const analysisReport = generateSkillGapAnalysis({
       candidateSkills: session.candidateSkills,
       targetRole: session.targetRole,
-      sessionEvaluations: session.evaluations
+      sessionEvaluations: session.evaluations || [],
+      isEarlyExit: !!isEarlyExit,
+      totalQuestionsPlanned: session.totalQuestionsPlanned || 5
     });
 
+    if (proctoringSummary) {
+      session.proctoringSummary = proctoringSummary;
+      analysisReport.proctoringSummary = proctoringSummary;
+    }
+
+    session.isEarlyExit = !!isEarlyExit;
+    analysisReport.isEarlyExit = !!isEarlyExit;
     session.finalReport = analysisReport;
     session.status = "COMPLETED";
     session.completedAt = new Date().toISOString();

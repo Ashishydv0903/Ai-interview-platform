@@ -4,10 +4,10 @@
 
 @layer utilities {
   .glass-card {
-    background: rgba(19, 27, 46, 0.7);
+    background: rgba(15, 49, 84, 0.75);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(28, 71, 110, 0.7);
   }
   
   .glass-card-hover {
@@ -15,18 +15,21 @@
   }
   .glass-card-hover:hover {
     transform: translateY(-2px);
-    border-color: rgba(139, 92, 246, 0.4);
-    box-shadow: 0 10px 25px -5px rgba(139, 92, 246, 0.15);
+    border-color: rgba(92, 219, 148, 0.5);
+    box-shadow: 0 10px 25px -5px rgba(92, 219, 148, 0.15);
   }
 
+  .glow-mint {
+    box-shadow: 0 0 20px rgba(92, 219, 148, 0.4);
+  }
   .glow-purple {
-    box-shadow: 0 0 20px rgba(139, 92, 246, 0.35);
+    box-shadow: 0 0 20px rgba(92, 219, 148, 0.35);
   }
   .glow-cyan {
-    box-shadow: 0 0 20px rgba(6, 182, 212, 0.35);
+    box-shadow: 0 0 20px rgba(56, 189, 248, 0.35);
   }
   .glow-emerald {
-    box-shadow: 0 0 20px rgba(16, 185, 129, 0.35);
+    box-shadow: 0 0 20px rgba(92, 219, 148, 0.35);
   }
 }
 
@@ -36,14 +39,14 @@
   height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: #0B0F19;
+  background: #0B2641;
 }
 ::-webkit-scrollbar-thumb {
-  background: #1E293B;
+  background: #1C476E;
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+  background: #5CDB94;
 }
 
 @keyframes pulseGlow {

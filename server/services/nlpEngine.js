@@ -10,7 +10,8 @@ const KNOWN_SKILLS = [
   "MongoDB", "PostgreSQL", "MySQL", "Redis", "GraphQL", "REST API", "SQL", "Database Indexing",
   "Docker", "Kubernetes", "AWS", "CI/CD", "Git", "DevOps", "Microservices", "Kafka",
   "Machine Learning", "NLP", "PyTorch", "TensorFlow", "Sentence Transformers", "BERT", "LLM", "OpenAI",
-  "System Design", "Distributed Systems", "Security", "JWT", "Performance Optimization"
+  "System Design", "Distributed Systems", "Security", "JWT", "Performance Optimization",
+  "Logical Deduction", "Quantitative Aptitude", "Probability", "Permutations", "Ratios", "Time and Work"
 ];
 
 /**
@@ -72,7 +73,8 @@ function extractResumeMetadata(resumeText) {
 }
 
 /**
- * Calculate semantic similarity and concept coverage for an answer against an ideal answer rubric
+ * Calculate semantic similarity and concept coverage for an answer against an ideal answer rubric.
+ * Rigorous: Prevents random gibberish or off-topic responses from inflating scores.
  */
 function evaluateResponseSemantic({ answer, questionObj, expectedConcepts }) {
   if (!answer || answer.trim().length === 0) {
@@ -88,18 +90,41 @@ function evaluateResponseSemantic({ answer, questionObj, expectedConcepts }) {
     };
   }
 
-  const answerLower = answer.toLowerCase();
+  const trimmed = answer.trim();
+  const answerLower = trimmed.toLowerCase();
+  const words = trimmed.split(/\s+/).filter(Boolean);
+  const wordCount = words.length;
 
-  // 1. Expected Concept Coverage
+  // Gibberish Detection (repeated chars like 'aaaa', single-letter words, or no vowels in long word)
+  const isGibberish = 
+    /(.)\1{4,}/.test(trimmed) || 
+    (wordCount < 4 && trimmed.length > 15 && !/[aeiouy]/i.test(trimmed)) ||
+    (wordCount === 1 && trimmed.length > 8 && !/[aeiouy]{2,}/i.test(trimmed));
+
+  if (isGibberish) {
+    return {
+      score: 0,
+      matchedConcepts: [],
+      missingConcepts: expectedConcepts || [],
+      conceptCoveragePercent: 0,
+      depthScore: 0,
+      clarityScore: 0,
+      confidenceScore: 0,
+      fillerCount: 0,
+      wordCount,
+      feedbackSummary: "The submitted response appears to be random keystrokes or invalid text."
+    };
+  }
+
+  // 1. Concept Coverage
   const matchedConcepts = [];
   const missingConcepts = [];
 
   (expectedConcepts || []).forEach(concept => {
     const conceptLower = concept.toLowerCase();
-    // check simple term match or sub-tokens
     const tokens = conceptLower.split(/\s+/);
     const hasFullMatch = answerLower.includes(conceptLower);
-    const hasPartialMatch = tokens.every(t => answerLower.includes(t));
+    const hasPartialMatch = tokens.length > 1 && tokens.every(t => answerLower.includes(t));
 
     if (hasFullMatch || hasPartialMatch) {
       matchedConcepts.push(concept);
@@ -108,30 +133,39 @@ function evaluateResponseSemantic({ answer, questionObj, expectedConcepts }) {
     }
   });
 
-  const conceptCoveragePercent = expectedConcepts && expectedConcepts.length > 0
-    ? Math.round((matchedConcepts.length / expectedConcepts.length) * 100)
-    : 70;
+  const totalExpected = (expectedConcepts && expectedConcepts.length > 0) ? expectedConcepts.length : 1;
+  const conceptCoveragePercent = Math.round((matchedConcepts.length / totalExpected) * 100);
 
-  // 2. Depth & Length Score
-  const words = answer.trim().split(/\s+/);
-  const wordCount = words.length;
-  let depthScore = Math.min(100, Math.round((wordCount / 40) * 100)); // ~40 words optimal for concise detailed answer
-  if (wordCount < 10) depthScore = 25;
+  // If ZERO concepts were matched, this response is off-topic or lacks domain substance
+  if (matchedConcepts.length === 0) {
+    const minimalScore = Math.min(10, Math.round(wordCount * 0.4));
+    return {
+      score: minimalScore,
+      matchedConcepts: [],
+      missingConcepts: expectedConcepts || [],
+      conceptCoveragePercent: 0,
+      depthScore: 0,
+      clarityScore: wordCount >= 5 ? 15 : 5,
+      confidenceScore: minimalScore,
+      fillerCount: 0,
+      wordCount,
+      feedbackSummary: "Answer does not cover the required core concepts for this question."
+    };
+  }
 
-  // 3. Technical Keyword Density
+  // 2. Depth & Substance (scaled strictly by concept coverage)
+  const baseDepth = Math.min(100, Math.round((wordCount / 35) * 100));
+  const depthScore = Math.round(baseDepth * (0.3 + 0.7 * (conceptCoveragePercent / 100)));
+
+  // 3. Technical Terms & Transitional Reasoning
   let techDensityBonus = 0;
-  const techTerms = ["because", "therefore", "implements", "algorithm", "performance", "memory", "async", "latency", "scale", "complexity", "trade-off", "solution"];
+  const techTerms = ["because", "therefore", "implements", "algorithm", "performance", "memory", "async", "latency", "scale", "complexity", "trade-off", "solution", "step", "formula", "ratio"];
   techTerms.forEach(term => {
-    if (answerLower.includes(term)) techDensityBonus += 5;
+    if (answerLower.includes(term)) techDensityBonus += 3;
   });
-  techDensityBonus = Math.min(20, techDensityBonus);
+  techDensityBonus = Math.min(12, techDensityBonus);
 
-  // 4. Calculate Final Composite Score (0 - 100)
-  const compositeScore = Math.min(100, Math.round(
-    (conceptCoveragePercent * 0.55) + (depthScore * 0.30) + techDensityBonus
-  ));
-
-  // 5. Behavioral / Speech Clarity Metrics (Filler word count, pacing)
+  // 4. Clarity & Filler Word Detection
   const fillerWords = ["um", "uh", "like", "you know", "basically", "actually", "sort of"];
   let fillerCount = 0;
   fillerWords.forEach(fw => {
@@ -140,7 +174,12 @@ function evaluateResponseSemantic({ answer, questionObj, expectedConcepts }) {
     if (matches) fillerCount += matches.length;
   });
 
-  const clarityScore = Math.max(30, 100 - (fillerCount * 12));
+  const clarityScore = Math.max(20, Math.min(100, 100 - (fillerCount * 10)));
+
+  // 5. Composite Score Calculation
+  const compositeScore = Math.min(100, Math.round(
+    (conceptCoveragePercent * 0.65) + (depthScore * 0.25) + techDensityBonus
+  ));
   const confidenceScore = Math.min(100, Math.round((compositeScore * 0.7) + (clarityScore * 0.3)));
 
   return {
@@ -158,5 +197,6 @@ function evaluateResponseSemantic({ answer, questionObj, expectedConcepts }) {
 
 module.exports = {
   extractResumeMetadata,
-  evaluateResponseSemantic
+  evaluateResponseSemantic,
+  KNOWN_SKILLS
 };

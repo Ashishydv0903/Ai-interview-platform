@@ -51,19 +51,19 @@ solveProblem("sample_data");`
   };
 
   return (
-    <div className="bg-slate-950/90 rounded-xl border border-slate-800 overflow-hidden shadow-2xl flex flex-col my-4">
+    <div className="bg-[#071B2E] rounded-xl border border-[#1C476E] overflow-hidden shadow-2xl flex flex-col my-4">
       {/* Editor Toolbar */}
-      <div className="bg-slate-900/90 px-4 py-2 border-b border-slate-800 flex items-center justify-between">
+      <div className="bg-[#0B2641] px-4 py-2 border-b border-[#1C476E] flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Code className="w-4 h-4 text-purple-400" />
-          <span className="text-xs font-semibold text-slate-300">Live Code Sandbox</span>
-          <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-mono">JS / React</span>
+          <Code className="w-4 h-4 text-[#5CDB94]" />
+          <span className="text-xs font-semibold text-slate-200">Live Code Sandbox</span>
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#071B2E] text-slate-300 font-mono border border-[#1C476E]">JS / React</span>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={handleRun}
             disabled={isRunning}
-            className="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs font-semibold flex items-center gap-1.5 transition-all"
+            className="px-3 py-1 bg-[#5CDB94] hover:bg-[#4CD087] text-[#0B2540] rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
           >
             {isRunning ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
             Run & Test
@@ -72,23 +72,23 @@ solveProblem("sample_data");`
       </div>
 
       {/* Editor Body */}
-      <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-slate-800">
-        <div className="p-2 bg-slate-950 font-mono text-xs">
+      <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-[#1C476E]">
+        <div className="p-3 bg-[#071B2E] font-mono text-xs">
           <textarea
             value={code}
             onChange={handleCodeEdit}
             rows={10}
-            className="w-full h-full bg-transparent text-purple-200 focus:outline-none resize-none font-mono text-xs leading-relaxed"
+            className="w-full h-full bg-transparent text-emerald-200 focus:outline-none resize-none font-mono text-xs leading-relaxed"
             placeholder="Write JavaScript code snippet..."
           />
         </div>
 
         {/* Output Console */}
-        <div className="p-3 bg-[#080B12] font-mono text-xs text-slate-300 flex flex-col justify-between">
+        <div className="p-3 bg-[#051424] font-mono text-xs text-slate-300 flex flex-col justify-between">
           <div>
-            <div className="flex items-center gap-2 text-slate-500 pb-2 border-b border-slate-800/80 mb-2">
-              <Terminal className="w-3.5 h-3.5 text-cyan-400" />
-              <span className="text-[11px] font-medium text-slate-400">Execution Output</span>
+            <div className="flex items-center gap-2 text-slate-400 pb-2 border-b border-[#1C476E] mb-2">
+              <Terminal className="w-3.5 h-3.5 text-[#38BDF8]" />
+              <span className="text-[11px] font-medium text-slate-300">Execution Output</span>
             </div>
             <pre className="text-slate-300 whitespace-pre-wrap font-mono text-[11px] leading-relaxed max-h-48 overflow-y-auto">
               {outputLog || "// Press 'Run & Test' to execute code snippet in sandbox..."}
@@ -97,9 +97,9 @@ solveProblem("sample_data");`
           
           <button
             onClick={() => onSubmitCode && onSubmitCode(code)}
-            className="mt-3 w-full py-1.5 bg-purple-600/30 hover:bg-purple-600/50 border border-purple-500/40 text-purple-200 rounded text-xs font-semibold flex items-center justify-center gap-2 transition-all"
+            className="mt-3 w-full py-1.5 bg-[#5CDB94]/20 hover:bg-[#5CDB94]/30 border border-[#5CDB94]/40 text-[#5CDB94] rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer"
           >
-            <CheckCircle2 className="w-3.5 h-3.5 text-purple-400" />
+            <CheckCircle2 className="w-3.5 h-3.5 text-[#5CDB94]" />
             Attach Code to Answer Evaluation
           </button>
         </div>

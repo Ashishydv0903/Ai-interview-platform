@@ -42,22 +42,22 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in">
-      <div className="glass-card w-full max-w-md rounded-2xl p-6 border border-purple-500/30 shadow-2xl relative">
+      <div className="glass-card w-full max-w-md rounded-2xl p-6 border border-[#1C476E] shadow-2xl relative">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-all"
+          className="absolute top-4 right-4 p-1 rounded-lg text-slate-400 hover:text-white hover:bg-[#0F3154] transition-all"
         >
           <X className="w-5 h-5" />
         </button>
 
         <div className="text-center mb-6">
-          <div className="w-12 h-12 rounded-2xl bg-purple-600/20 border border-purple-500/40 text-purple-400 flex items-center justify-center mx-auto mb-2">
+          <div className="w-12 h-12 rounded-2xl bg-[#5CDB94]/20 border border-[#5CDB94]/30 text-[#5CDB94] flex items-center justify-center mx-auto mb-2">
             <GraduationCap className="w-6 h-6" />
           </div>
           <h3 className="text-xl font-extrabold text-white font-['Outfit']">
             {isRegister ? 'Create Candidate Account' : 'Welcome Back, Candidate'}
           </h3>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-slate-300 mt-1">
             Sign in to save your resume, record all mock interviews, and track your skill improvement over time.
           </p>
         </div>
@@ -80,7 +80,7 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
                   placeholder="e.g. Ashish Yadav"
                   value={name}
                   onChange={e => setName(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-slate-100 focus:outline-none focus:border-purple-500"
+                  className="w-full bg-[#071B2E] border border-[#1C476E] rounded-xl pl-9 pr-3 py-2 text-slate-100 focus:outline-none focus:border-[#5CDB94]"
                 />
               </div>
             </div>
@@ -96,7 +96,7 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
                 placeholder="candidate@example.com"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-slate-100 focus:outline-none focus:border-purple-500"
+                className="w-full bg-[#071B2E] border border-[#1C476E] rounded-xl pl-9 pr-3 py-2 text-slate-100 focus:outline-none focus:border-[#5CDB94]"
               />
             </div>
           </div>
@@ -111,7 +111,7 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
                 placeholder="••••••••"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-slate-100 focus:outline-none focus:border-purple-500"
+                className="w-full bg-[#071B2E] border border-[#1C476E] rounded-xl pl-9 pr-3 py-2 text-slate-100 focus:outline-none focus:border-[#5CDB94]"
               />
             </div>
           </div>
@@ -119,25 +119,25 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white font-bold rounded-xl shadow-lg shadow-purple-600/30 flex items-center justify-center gap-2 text-sm transition-all"
+            className="w-full py-3 bg-[#5CDB94] hover:bg-[#4CD087] text-[#0B2540] font-extrabold rounded-xl shadow-lg shadow-[#5CDB94]/25 flex items-center justify-center gap-2 text-sm transition-all cursor-pointer"
           >
-            {isRegister ? <UserPlus className="w-4 h-4" /> : <LogIn className="w-4 h-4" />}
+            {isRegister ? <UserPlus className="w-4 h-4 text-[#0B2540]" /> : <LogIn className="w-4 h-4 text-[#0B2540]" />}
             {loading ? 'Processing...' : isRegister ? 'Register & Start Preparing' : 'Sign In'}
           </button>
         </form>
 
-        <div className="mt-4 pt-4 border-t border-slate-800 text-center text-xs text-slate-400">
+        <div className="mt-4 pt-4 border-t border-[#1C476E] text-center text-xs text-slate-300">
           {isRegister ? (
             <p>
               Already registered?{' '}
-              <button onClick={() => setIsRegister(false)} className="text-purple-400 font-semibold hover:underline">
+              <button onClick={() => setIsRegister(false)} className="text-[#5CDB94] font-semibold hover:underline">
                 Sign In
               </button>
             </p>
           ) : (
             <p>
               New candidate?{' '}
-              <button onClick={() => setIsRegister(true)} className="text-purple-400 font-semibold hover:underline">
+              <button onClick={() => setIsRegister(true)} className="text-[#5CDB94] font-semibold hover:underline">
                 Register Free
               </button>
             </p>
