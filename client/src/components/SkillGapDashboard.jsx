@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from 'recharts';
-import { Award, BookOpen, CheckCircle2, AlertTriangle, Download, Sparkles, ExternalLink, BrainCircuit, BarChart2, LayoutGrid, ArrowLeft, MessageSquare, Check, HelpCircle, Code2, TrendingUp, TrendingDown, Layers, History, Compass, ArrowUpRight, Minus, ShieldCheck, ShieldAlert, Camera, Eye, Cpu, UserCheck, UserX, AlertCircle, LogOut, Activity } from 'lucide-react';
+import { Award, BookOpen, CheckCircle2, AlertTriangle, Download, Sparkles, ExternalLink, BrainCircuit, BarChart2, LayoutGrid, ArrowLeft, MessageSquare, Check, HelpCircle, Code2, TrendingUp, TrendingDown, Layers, History, Compass, ArrowUpRight, Minus, ShieldCheck, ShieldAlert, Camera, Eye, Cpu, UserCheck, UserX, AlertCircle, LogOut, Activity, Target } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import html2pdf from 'html2pdf.js';
 
 export default function SkillGapDashboard({ sessionData, user, onBackToHistory, onStartNewMock }) {
-  const [viewMode, setViewMode] = useState('humanScorecard'); // 'humanScorecard' or 'radar'
+  const [viewMode, setViewMode] = useState('skillScorecard'); // 'skillScorecard' or 'radar'
 
   const finalReport = sessionData?.finalReport || {
     overallScore: 82,
@@ -170,6 +170,37 @@ export default function SkillGapDashboard({ sessionData, user, onBackToHistory, 
   });
   const crossDomainList = Object.values(crossDomainMap);
 
+  // Detailed points-wise missing skills breakdown derived directly from candidate's answers
+  const evaluationsList = sessionData?.evaluations || [];
+  const questionMissingAnalysis = evaluationsList.map((item, idx) => {
+    const qNum = idx + 1;
+    const score = item.evaluation?.score ?? 70;
+    const pointsLost = Math.max(0, 100 - score);
+    const missing = item.evaluation?.missingConcepts || [];
+    const matched = item.evaluation?.matchedConcepts || [];
+    const ptsPerSkill = missing.length > 0 ? Math.max(5, Math.round(pointsLost / missing.length)) : 0;
+
+    return {
+      qNum,
+      topic: item.topic || 'Core Concept',
+      questionText: item.questionText,
+      userAnswer: item.userAnswer,
+      score,
+      pointsLost,
+      missingSkills: missing.map(m => ({
+        skillName: m,
+        ptsDeducted: ptsPerSkill,
+        whyMissing: `Expected for Question ${qNum} (${item.topic}). Candidate response omitted this core competency.`,
+        recoveryTip: `Cite and demonstrate ${m} with practical examples in technical interviews.`
+      })),
+      matchedSkills: matched,
+      rationale: item.evaluation?.rationale || "Coverage gaps in required domain concepts."
+    };
+  });
+
+  const totalMissingSkills = questionMissingAnalysis.reduce((acc, q) => acc + q.missingSkills.length, 0);
+  const totalDeductedPoints = questionMissingAnalysis.reduce((acc, q) => acc + q.pointsLost, 0);
+
   return (
     <div className="max-w-5xl mx-auto px-4 py-4 space-y-6">
       {/* Top Navigation & Action Ribbon */}
@@ -187,14 +218,14 @@ export default function SkillGapDashboard({ sessionData, user, onBackToHistory, 
           <div>
             <div className="flex items-center gap-2">
               <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#5CDB94]/20 text-[#5CDB94] border border-[#5CDB94]/30">
-                Mock Performance Scorecard
+                Verified Skill Scorecard
               </span>
               <span className="text-xs text-slate-300 font-mono">
                 {sessionData?.candidateDomain || 'General'} Assessment
               </span>
             </div>
             <h2 className="text-xl sm:text-2xl font-extrabold text-white mt-1 font-['Outfit']">
-              Personalized Mentor <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#5CDB94] to-[#38BDF8]">Feedback & Debrief</span>
+              Candidate Skill <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#5CDB94] to-[#38BDF8]">Scorecard & Gap Analysis</span>
             </h2>
           </div>
         </div>
@@ -203,14 +234,14 @@ export default function SkillGapDashboard({ sessionData, user, onBackToHistory, 
         <div className="flex items-center gap-2">
           <div className="flex items-center bg-[#071B2E] p-1 rounded-xl border border-[#1C476E] text-xs">
             <button
-              onClick={() => setViewMode('humanScorecard')}
+              onClick={() => setViewMode('skillScorecard')}
               className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all font-bold ${
-                viewMode === 'humanScorecard'
+                viewMode === 'skillScorecard'
                   ? 'bg-[#5CDB94] text-[#0B2540] shadow-md'
                   : 'text-slate-300 hover:text-white'
               }`}
             >
-              <BarChart2 className="w-3.5 h-3.5" /> Human Scorecard
+              <BarChart2 className="w-3.5 h-3.5" /> Skill Scorecard
             </button>
             <button
               onClick={() => setViewMode('radar')}
@@ -257,7 +288,7 @@ export default function SkillGapDashboard({ sessionData, user, onBackToHistory, 
           </div>
         )}
 
-        {/* 1. MENTOR'S EXECUTIVE DEBRIEF (Human-Generated Style) */}
+        {/* 1. SKILL EVALUATOR'S EXECUTIVE DEBRIEF */}
         <div className="glass-card rounded-2xl p-6 sm:p-8 border border-[#1C476E] relative overflow-hidden shadow-xl">
           <div className="absolute top-0 right-0 w-64 h-64 bg-[#5CDB94]/10 rounded-full blur-3xl pointer-events-none"></div>
 
@@ -285,7 +316,7 @@ export default function SkillGapDashboard({ sessionData, user, onBackToHistory, 
             <div className="space-y-2 flex-1 text-center md:text-left">
               <div className="flex items-center justify-center md:justify-start gap-2">
                 <span className="text-xs font-bold text-[#5CDB94] uppercase tracking-wider flex items-center gap-1">
-                  <Sparkles className="w-3.5 h-3.5 text-[#5CDB94]" /> Mentor's Evaluation Note
+                  <Sparkles className="w-3.5 h-3.5 text-[#5CDB94]" /> Skill Evaluator's Note
                 </span>
                 <span className="text-xs text-slate-500">•</span>
                 <span className="text-xs text-slate-300 font-semibold">For {candidateName}</span>
@@ -391,8 +422,142 @@ export default function SkillGapDashboard({ sessionData, user, onBackToHistory, 
           </div>
         </div>
 
-        {/* 3. SKILL MASTERY BREAKDOWN (Clean, readable human scorecard) */}
-        {viewMode === 'humanScorecard' ? (
+        {/* 2.5. POINTS-WISE MISSING SKILLS & CONCEPT DEDUCTION AUDIT */}
+        <div className="glass-card rounded-2xl p-6 border-2 border-amber-500/40 space-y-5 shadow-2xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-[#1C476E]">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 font-mono">
+                  Points-Wise Response Audit
+                </span>
+                <span className="text-xs text-slate-300 font-mono">Derived from Candidate Answers</span>
+              </div>
+              <h3 className="text-lg font-bold text-white mt-1 flex items-center gap-2 font-['Outfit']">
+                <Target className="w-5 h-5 text-amber-400" />
+                Missing Skills & Point Deductions (Interview Performance Breakdown)
+              </h3>
+              <p className="text-xs text-slate-300 mt-0.5">
+                Exact point-by-point inventory of concepts missing from your verbal & coded responses, and how they affected your score.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <div className="px-3.5 py-1.5 rounded-xl bg-[#071B2E] border border-amber-500/40 text-center font-mono">
+                <span className="text-[10px] text-slate-400 block uppercase font-bold">Missing Skills</span>
+                <span className="text-sm font-extrabold text-amber-300">{totalMissingSkills} Identified</span>
+              </div>
+              <div className="px-3.5 py-1.5 rounded-xl bg-[#071B2E] border border-rose-500/40 text-center font-mono">
+                <span className="text-[10px] text-slate-400 block uppercase font-bold">Score Impact</span>
+                <span className="text-sm font-extrabold text-rose-400">-{totalDeductedPoints} Pts</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Question-By-Question Points-Wise Missing Skills Cards */}
+          {questionMissingAnalysis.length > 0 ? (
+            <div className="space-y-4">
+              {questionMissingAnalysis.map((item) => (
+                <div
+                  key={item.qNum}
+                  className={`p-4 rounded-xl border transition-all ${
+                    item.missingSkills.length > 0
+                      ? 'bg-[#071B2E] border-amber-500/40'
+                      : 'bg-[#5CDB94]/10 border-[#5CDB94]/30'
+                  }`}
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 pb-2 border-b border-[#1C476E]/60">
+                    <div className="flex items-center gap-2">
+                      <span className="w-6 h-6 rounded-lg bg-[#0B2641] border border-[#1C476E] text-white font-mono font-bold text-xs flex items-center justify-center">
+                        Q{item.qNum}
+                      </span>
+                      <span className="font-bold text-white text-xs">{item.topic}</span>
+                      <span className="text-[10px] px-2 py-0.5 rounded bg-[#0B2641] text-slate-300 border border-[#1C476E] font-mono">
+                        Question Score: <strong className={item.score >= 80 ? 'text-[#5CDB94]' : 'text-amber-400'}>{item.score}%</strong>
+                      </span>
+                    </div>
+
+                    <div className="font-mono text-xs">
+                      {item.pointsLost > 0 ? (
+                        <span className="text-rose-400 font-bold bg-rose-500/15 px-2.5 py-0.5 rounded-md border border-rose-500/30">
+                          -{item.pointsLost} Points Deducted
+                        </span>
+                      ) : (
+                        <span className="text-[#5CDB94] font-bold bg-[#5CDB94]/15 px-2.5 py-0.5 rounded-md border border-[#5CDB94]/30">
+                          100% Score • 0 Points Lost
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Question Prompt */}
+                  <div className="text-xs text-slate-200 pt-2 pb-1">
+                    <strong className="text-white">Question Asked:</strong> {item.questionText}
+                  </div>
+
+                  {/* Candidate Answer Excerpt */}
+                  <div className="text-xs text-slate-300 bg-[#0B2641]/80 p-2.5 rounded-xl border border-[#1C476E]/50 my-2">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block font-mono">Your Recorded Response:</span>
+                    <p className="italic text-slate-200 mt-0.5 line-clamp-3">
+                      "{item.userAnswer || 'No verbal answer recorded'}"
+                    </p>
+                  </div>
+
+                  {/* Points-Wise Missing Skills List */}
+                  {item.missingSkills.length > 0 ? (
+                    <div className="space-y-2 pt-1">
+                      <span className="text-[11px] font-bold text-amber-300 block uppercase tracking-wider font-mono">
+                        Missing Skills & Point-by-Point Impact:
+                      </span>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {item.missingSkills.map((m, mIdx) => (
+                          <div
+                            key={mIdx}
+                            className="p-3 rounded-xl bg-[#0B2641] border border-amber-500/30 flex items-start justify-between gap-2 text-xs"
+                          >
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-1.5 font-bold text-white">
+                                <span className="text-rose-400 font-mono text-sm">❌</span>
+                                <span>{m.skillName}</span>
+                              </div>
+                              <p className="text-[11px] text-slate-300 leading-tight">
+                                {m.whyMissing}
+                              </p>
+                              <p className="text-[10px] text-[#5CDB94] font-medium pt-0.5">
+                                💡 Tip: {m.recoveryTip}
+                              </p>
+                            </div>
+                            <span className="text-rose-400 font-mono font-bold text-xs whitespace-nowrap bg-rose-500/15 px-2 py-0.5 rounded border border-rose-500/30 shrink-0">
+                              -{m.ptsDeducted} pts
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Mentor Critique on Lost Points */}
+                      <div className="text-xs text-slate-200 pt-1 leading-relaxed bg-[#0B2641] p-3 rounded-xl border border-[#1C476E]">
+                        💬 <strong className="text-white">Why marks were deducted:</strong> {item.rationale}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mt-2 p-2.5 rounded-xl bg-[#5CDB94]/10 border border-[#5CDB94]/30 text-xs text-[#5CDB94] flex items-center gap-2 font-semibold">
+                      <CheckCircle2 className="w-4 h-4 text-[#5CDB94] shrink-0" />
+                      <span>Full Mastery! Candidate covered all required domain concepts with no point deductions.</span>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="p-4 bg-[#071B2E] rounded-xl border border-[#1C476E] text-center text-xs text-slate-300">
+              No response evaluations found for this session. Complete an interview to view your points-wise missing skills breakdown.
+            </div>
+          )}
+        </div>
+
+        {/* 3. SKILL MASTERY BREAKDOWN (Clean, readable skill scorecard) */}
+        {viewMode === 'skillScorecard' ? (
           <div className="glass-card rounded-2xl p-6 border border-[#1C476E] space-y-4 shadow-xl">
             <div className="pb-3 border-b border-[#1C476E]">
               <h3 className="text-base font-bold text-white flex items-center gap-2 font-['Outfit']">

@@ -67,11 +67,17 @@ export default function Header({ activeTab, setActiveTab, currentSession, user, 
             }`}
           >
             <BarChart3 className="w-4 h-4" />
-            <span>Scorecard</span>
+            <span>Skill Scorecard</span>
           </button>
 
           <button
-            onClick={() => setActiveTab('results')}
+            onClick={() => {
+              if (!user && onOpenAuth) {
+                onOpenAuth();
+              } else {
+                setActiveTab('results');
+              }
+            }}
             className={`px-3 py-1.5 rounded-lg flex items-center gap-2 transition-all ${
               activeTab === 'results'
                 ? 'bg-[#0B2540] text-white shadow-md font-bold'

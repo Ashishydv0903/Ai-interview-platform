@@ -66,6 +66,14 @@ exports.startInterview = async (req, res) => {
       customSubject
     } = req.body;
 
+    // Enforce mandatory user authentication: guest/unregistered interviews are strictly prohibited
+    if (!userId || userId === "guest-candidate") {
+      return res.status(401).json({
+        success: false,
+        message: "Authentication required: Please sign in or create an account to start an interview session."
+      });
+    }
+
     const candidateDomain = domain || "Frontend";
     const difficulty = initialDifficulty || "Easy";
     const totalQuestions = parseInt(totalQuestionsPlanned) || 5;
@@ -75,7 +83,7 @@ exports.startInterview = async (req, res) => {
     const session = {
       id: sessionId,
       sessionId: sessionId,
-      userId: userId || "guest-candidate",
+      userId: userId,
       candidateName: candidateName || "Candidate",
       targetRole: targetRole || `${candidateDomain} Candidate`,
       candidateDomain,
