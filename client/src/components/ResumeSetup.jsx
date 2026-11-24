@@ -237,7 +237,7 @@ export default function ResumeSetup({ onInterviewStart, user, onRequireAuth }) {
             <div>
               <h4 className="text-base font-bold text-white font-['Outfit']">Candidate Login Required</h4>
               <p className="text-xs text-slate-300 mt-0.5 max-w-xl leading-relaxed">
-                Guest bypass has been disabled to protect assessment integrity. Please sign in or create an account to start an interview session, enable live camera proctoring, and save your skill scorecard.
+                Please sign in or create an account to start an interview session, enable live camera proctoring, and save your skill scorecard.
               </p>
             </div>
           </div>
