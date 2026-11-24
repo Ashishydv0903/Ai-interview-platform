@@ -65,7 +65,8 @@ exports.startInterview = async (req, res) => {
       timeLimitMinutes,
       customSubject,
       resumeText,
-      jobDescription
+      jobDescription,
+      mode
     } = req.body;
 
     // Enforce mandatory user authentication: guest/unregistered interviews are strictly prohibited
@@ -80,6 +81,7 @@ exports.startInterview = async (req, res) => {
     const difficulty = initialDifficulty || "Easy";
     const totalQuestions = parseInt(totalQuestionsPlanned) || 5;
     const timeLimit = parseInt(timeLimitMinutes) || 15;
+    const interviewMode = mode || (resumeText && resumeText.trim().length > 30 ? "RESUME_BASED" : "ROLE_BASED");
 
     const sessionId = uuidv4();
     const session = {
@@ -89,10 +91,11 @@ exports.startInterview = async (req, res) => {
       candidateName: candidateName || "Candidate",
       targetRole: targetRole || `${candidateDomain} Candidate`,
       candidateDomain,
+      interviewMode,
       customSubject: customSubject || null,
       candidateSkills: candidateSkills || ["General Concepts"],
-      resumeText: resumeText || null,
-      jobDescription: jobDescription || null,
+      resumeText: interviewMode === "RESUME_BASED" ? (resumeText || null) : null,
+      jobDescription: interviewMode === "RESUME_BASED" ? (jobDescription || null) : null,
       currentDifficulty: difficulty,
       totalQuestionsPlanned: totalQuestions,
       timeLimitMinutes: timeLimit,
@@ -102,11 +105,12 @@ exports.startInterview = async (req, res) => {
       createdAt: new Date().toISOString()
     };
 
-    // Attempt Gemini AI Question generation tailored to candidate's Resume and optional Job Description
+    // Attempt Gemini AI Question generation tailored explicitly to the chosen mode (Resume vs Role)
     let geminiQuestions = null;
     geminiQuestions = await generateQuestionsWithGemini({
-      resumeText,
-      jobDescription,
+      mode: interviewMode,
+      resumeText: interviewMode === "RESUME_BASED" ? resumeText : null,
+      jobDescription: interviewMode === "RESUME_BASED" ? jobDescription : null,
       skills: candidateSkills || [],
       domain: candidateDomain,
       customSubject,

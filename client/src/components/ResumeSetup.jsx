@@ -16,6 +16,7 @@ export default function ResumeSetup({ onInterviewStart, user, onRequireAuth }) {
   const [isParsing, setIsParsing] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
+  const [startingMode, setStartingMode] = useState(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [authErrorNotice, setAuthErrorNotice] = useState(false);
 
@@ -147,28 +148,46 @@ export default function ResumeSetup({ onInterviewStart, user, onRequireAuth }) {
     }
   };
 
-  const handleStart = async () => {
+  const handleStartInterview = async (selectedMode = "ROLE_BASED") => {
     if (!user) {
       setAuthErrorNotice(true);
       if (onRequireAuth) onRequireAuth();
       return;
     }
 
+    if (selectedMode === "RESUME_BASED") {
+      if (!resumeText || resumeText.trim().length < 25) {
+        alert("Please paste your resume or upload a resume PDF in Step 3 so Gemini can generate questions from your projects and background.");
+        return;
+      }
+    }
+
     // Determine domain-appropriate skills so Aptitude / Business / Non-tech don't receive programming keywords
     let skillsForInterview = parsedSkills;
-    if (domain === "Aptitude & Reasoning") {
-      skillsForInterview = ["Logical Deduction", "Quantitative Aptitude", "Probability & Combinatorics", "Time and Work", "Ratios and Percentages"];
-    } else if (domain === "Business & Management") {
-      skillsForInterview = ["Product Strategy", "Unit Economics", "Stakeholder Alignment", "Prioritization Frameworks"];
-    } else if (domain === "English Communication") {
-      skillsForInterview = ["STAR Method", "De-escalation", "Executive Communication", "Client Relationship Management"];
-    } else if (domain === "Finance & Accounting") {
-      skillsForInterview = ["Financial Statements", "Working Capital", "Valuation", "Accounting Principles"];
-    } else if (domain === "Custom" && customSubject) {
-      skillsForInterview = [customSubject];
+    if (selectedMode === "ROLE_BASED") {
+      if (domain === "Frontend") {
+        skillsForInterview = ["React", "JavaScript", "Browser Performance", "State Management", "CSS"];
+      } else if (domain === "Backend") {
+        skillsForInterview = ["Node.js", "REST APIs", "SQL & Databases", "Caching Architecture", "Microservices"];
+      } else if (domain === "FullStack") {
+        skillsForInterview = ["React", "Node.js", "REST APIs", "SQL Databases", "Authentication"];
+      } else if (domain === "DataScience") {
+        skillsForInterview = ["Python", "Machine Learning", "Transformers & NLP", "Model Evaluation"];
+      } else if (domain === "Aptitude & Reasoning") {
+        skillsForInterview = ["Logical Deduction", "Quantitative Aptitude", "Probability & Combinatorics", "Time and Work", "Ratios and Percentages"];
+      } else if (domain === "Business & Management") {
+        skillsForInterview = ["Product Strategy", "Unit Economics", "Stakeholder Alignment", "Prioritization Frameworks"];
+      } else if (domain === "English Communication") {
+        skillsForInterview = ["STAR Method", "De-escalation", "Executive Communication", "Client Relationship Management"];
+      } else if (domain === "Finance & Accounting") {
+        skillsForInterview = ["Financial Statements", "Working Capital", "Valuation", "Accounting Principles"];
+      } else if (domain === "Custom" && customSubject) {
+        skillsForInterview = [customSubject];
+      }
     }
 
     setIsStarting(true);
+    setStartingMode(selectedMode);
     try {
       const activeUserId = user.id;
       const activeCandidateName = user.name || candidateName || "Candidate";
@@ -182,9 +201,10 @@ export default function ResumeSetup({ onInterviewStart, user, onRequireAuth }) {
           targetRole: domain === "Custom" && customSubject ? customSubject : targetRole,
           domain,
           customSubject,
+          mode: selectedMode,
           candidateSkills: skillsForInterview,
-          resumeText: resumeText || null,
-          jobDescription: jobDescription || null,
+          resumeText: selectedMode === "RESUME_BASED" ? resumeText : null,
+          jobDescription: selectedMode === "RESUME_BASED" ? jobDescription : null,
           initialDifficulty: "Easy",
           totalQuestionsPlanned,
           timeLimitMinutes
@@ -198,9 +218,10 @@ export default function ResumeSetup({ onInterviewStart, user, onRequireAuth }) {
       }
     } catch (err) {
       console.error("Failed to start interview:", err);
-      alert("Cannot connect to backend server. Please verify that the server is running on http://localhost:5000.");
+      alert("Cannot connect to backend server. Please verify that the server is running.");
     } finally {
       setIsStarting(false);
+      setStartingMode(null);
     }
   };
 
@@ -381,6 +402,44 @@ export default function ResumeSetup({ onInterviewStart, user, onRequireAuth }) {
                   ))}
                 </div>
               </div>
+
+              {/* Dedicated Start Button 1: Role, Category & Time Selection */}
+              <div className="pt-4 border-t border-[#1C476E]/80">
+                <button
+                  type="button"
+                  onClick={() => handleStartInterview("ROLE_BASED")}
+                  disabled={isStarting}
+                  className={`w-full py-3.5 font-bold rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all text-xs sm:text-sm active:scale-[0.99] cursor-pointer ${
+                    user
+                      ? 'bg-gradient-to-r from-[#1C476E] via-[#163F64] to-[#1C476E] hover:from-[#235684] hover:to-[#1C476E] text-white border border-[#5CDB94]/60 shadow-[#1C476E]/40'
+                      : 'bg-amber-400 hover:bg-amber-300 text-[#0B2540] shadow-amber-400/25'
+                  }`}
+                >
+                  {user ? (
+                    <>
+                      <Sparkles className="w-4 h-4 text-[#5CDB94]" />
+                      <span>
+                        {isStarting && startingMode === "ROLE_BASED"
+                          ? "Generating Role Questions..."
+                          : `Start ${targetRole} Mock (${totalQuestionsPlanned} Qs • ${timeLimitMinutes} Mins)`}
+                      </span>
+                      <ArrowRight className="w-4 h-4 text-[#5CDB94]" />
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="w-4 h-4 text-[#0B2540]" />
+                      <span>Sign In or Register to Start</span>
+                      <ArrowRight className="w-4 h-4 text-[#0B2540]" />
+                    </>
+                  )}
+                </button>
+                <p className="text-[11px] text-slate-300 text-center mt-2 flex items-center justify-center gap-1.5">
+                  <Target className="w-3.5 h-3.5 text-[#5CDB94] shrink-0" />
+                  <span>
+                    <strong>Option 1 (Field Practice):</strong> Questions will focus strictly on <strong>{targetRole}</strong> fundamentals & problem solving.
+                  </span>
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -499,10 +558,10 @@ export default function ResumeSetup({ onInterviewStart, user, onRequireAuth }) {
             </div>
           </div>
 
-          {/* Large Start Button (Enforces Login / Registration) */}
+          {/* Dedicated Start Button 2: Resume & Job Description */}
           <div className="pt-2">
             <button
-              onClick={handleStart}
+              onClick={() => handleStartInterview("RESUME_BASED")}
               disabled={isStarting}
               className={`w-full py-4 font-extrabold rounded-2xl shadow-xl flex items-center justify-center gap-2 transition-all text-sm active:scale-[0.99] cursor-pointer ${
                 user
@@ -513,19 +572,29 @@ export default function ResumeSetup({ onInterviewStart, user, onRequireAuth }) {
               {user ? (
                 <>
                   <Sparkles className="w-4 h-4 text-[#0B2540]" />
-                  <span>{isStarting ? "Preparing your interview..." : `Start Interview (${totalQuestionsPlanned} Questions • ${timeLimitMinutes} Mins)`}</span>
+                  <span>
+                    {isStarting && startingMode === "RESUME_BASED"
+                      ? "Analyzing Resume & Tailoring..."
+                      : `Start Resume & JD Interview (${totalQuestionsPlanned} Qs)`}
+                  </span>
                   <ArrowRight className="w-4 h-4 text-[#0B2540]" />
                 </>
               ) : (
                 <>
                   <Lock className="w-4 h-4 text-[#0B2540]" />
-                  <span>Sign In or Register to Start Interview</span>
+                  <span>Sign In or Register to Start</span>
                   <ArrowRight className="w-4 h-4 text-[#0B2540]" />
                 </>
               )}
             </button>
+            <p className="text-[11px] text-[#5CDB94] font-medium text-center mt-2 flex items-center justify-center gap-1.5">
+              <CheckCircle2 className="w-3.5 h-3.5 text-[#5CDB94] shrink-0" />
+              <span>
+                <strong>Option 2 (Resume Tailored):</strong> Gemini evaluates your actual projects, libraries & role requirements.
+              </span>
+            </p>
             {!user && (
-              <p className="text-xs text-amber-300 font-semibold text-center mt-2.5 flex items-center justify-center gap-1.5">
+              <p className="text-xs text-amber-300 font-semibold text-center mt-2 flex items-center justify-center gap-1.5">
                 <Lock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                 <span>
                   Candidate login or registration is required to start any mock interview.

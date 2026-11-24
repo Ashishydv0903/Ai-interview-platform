@@ -48,14 +48,19 @@ function getEligibleQuestions(domain) {
     if (ds.length > 0) return ds;
   }
 
-  if (targetDomain.includes("frontend")) {
-    const fe = QUESTION_BANK.filter(q => q.domain.toLowerCase() === "frontend");
-    if (fe.length > 0) return fe;
+  if (targetDomain.includes("fullstack") || targetDomain.includes("full stack") || targetDomain.includes("full-stack")) {
+    const fs = QUESTION_BANK.filter(q => q.domain.toLowerCase() === "fullstack");
+    if (fs.length > 0) return fs;
   }
 
-  if (targetDomain.includes("backend")) {
+  if (targetDomain.includes("backend") || targetDomain.includes("cloud") || targetDomain.includes("devops") || targetDomain.includes("server") || targetDomain.includes("database") || targetDomain.includes("api") || targetDomain.includes("microservice")) {
     const be = QUESTION_BANK.filter(q => q.domain.toLowerCase() === "backend");
     if (be.length > 0) return be;
+  }
+
+  if (targetDomain.includes("frontend") || targetDomain.includes("ui") || targetDomain.includes("web") || targetDomain.includes("react")) {
+    const fe = QUESTION_BANK.filter(q => q.domain.toLowerCase() === "frontend");
+    if (fe.length > 0) return fe;
   }
 
   // Exact match fallback

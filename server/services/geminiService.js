@@ -27,20 +27,8 @@ function extractJson(text) {
   }
 }
 
-let quotaExceededUntil = 0;
-const isQuotaExceeded = () => Date.now() < quotaExceededUntil;
-const markQuotaExceeded = (errMessage) => {
-  if (errMessage && (errMessage.includes('429') || errMessage.includes('Quota exceeded') || errMessage.includes('rate-limit') || errMessage.includes('Too Many Requests'))) {
-    quotaExceededUntil = Date.now() + 3 * 60 * 1000; // 3-minute temporary backoff
-    console.warn("⚠️ Gemini API Rate-Limit / Quota reached. Falling back to local semantic engine for 3 minutes.");
-  }
-};
-
 // Dynamic Gemini API Model Provider
 const getGeminiModel = (config = {}) => {
-  if (isQuotaExceeded()) {
-    return null;
-  }
   const apiKey = (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || "").trim();
   if (!apiKey || apiKey === "your_gemini_api_key_here") {
     return null;
@@ -66,6 +54,7 @@ const getGeminiModel = (config = {}) => {
  * If no resume is provided, falls back to the selected domain & role topics.
  */
 const generateQuestionsWithGemini = async (options = {}, legacyDomain = "Frontend", legacyCustom = null) => {
+  let mode = "ROLE_BASED";
   let resumeText = null;
   let jobDescription = null;
   let skills = [];
@@ -78,6 +67,7 @@ const generateQuestionsWithGemini = async (options = {}, legacyDomain = "Fronten
     domain = legacyDomain;
     customSubject = legacyCustom;
   } else if (typeof options === 'object' && options !== null) {
+    mode = options.mode || (options.resumeText && options.resumeText.trim().length > 25 ? "RESUME_BASED" : "ROLE_BASED");
     resumeText = options.resumeText || null;
     jobDescription = options.jobDescription || null;
     skills = options.skills || [];
@@ -91,12 +81,12 @@ const generateQuestionsWithGemini = async (options = {}, legacyDomain = "Fronten
     return null; // Fallback to curated question bank
   }
 
-  const hasResume = resumeText && resumeText.trim().length > 30;
-  const hasJD = jobDescription && jobDescription.trim().length > 15;
+  const isResumeMode = mode === "RESUME_BASED" && resumeText && resumeText.trim().length > 25;
+  const hasJD = isResumeMode && jobDescription && jobDescription.trim().length > 15;
 
   let prompt = "";
 
-  if (hasResume) {
+  if (isResumeMode) {
     prompt = `
 You are a senior hiring manager and lead technical interviewer conducting an in-depth, realistic interview.
 
@@ -184,16 +174,27 @@ Rules:
   }
 
   try {
-    const result = await withTimeout(model.generateContent(prompt), 14000);
+    let result;
+    try {
+      result = await withTimeout(model.generateContent(prompt), 14000);
+    } catch (firstErr) {
+      const msg = firstErr?.message || '';
+      if (msg.includes('429') || msg.includes('Quota') || msg.includes('ResourceExhausted') || msg.includes('rate-limit') || msg.includes('fetch failed')) {
+        console.warn("⚠️ Transient Gemini rate-limit/latency. Retrying once after 2s...");
+        await new Promise(r => setTimeout(r, 2000));
+        result = await withTimeout(model.generateContent(prompt), 14000);
+      } else {
+        throw firstErr;
+      }
+    }
     const text = result.response.text();
     const parsed = extractJson(text);
     if (Array.isArray(parsed) && parsed.length > 0) {
-      console.log(`✅ [Gemini] Successfully generated ${parsed.length} tailored interview questions${hasResume ? ' (Based on Candidate Resume)' : ''}${hasJD ? ' (Aligned with Job Description)' : ''}.`);
+      console.log(`✅ [Gemini] Successfully generated ${parsed.length} tailored interview questions${isResumeMode ? ' (Mode: RESUME_BASED)' : ` (Mode: ROLE_BASED - ${domain})`}${hasJD ? ' (Aligned with Job Description)' : ''}.`);
       return parsed;
     }
     return null;
   } catch (err) {
-    markQuotaExceeded(err.message);
     console.warn("⚠️ Gemini Question Generation Notice:", err.message, "-> Using curated Question Bank.");
     return null;
   }
