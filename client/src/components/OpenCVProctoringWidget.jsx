@@ -771,13 +771,12 @@ export default function OpenCVProctoringWidget({
               detectedFaces = 0;
             }
           }
+          held.detected = detected;
+          held.detectedFaces = detectedFaces;
+          held.frameIsCovered = frameIsCovered;
+          held.coverDetectedReason = coverDetectedReason;
+          held.target = targetBox;
         }
-
-        held.detected = detected;
-        held.detectedFaces = detectedFaces;
-        held.frameIsCovered = frameIsCovered;
-        held.coverDetectedReason = coverDetectedReason;
-        held.target = targetBox;
       }
     } else if (cameraActive && hardwareState === 'VIRTUAL') {
         // Virtual test pattern mode if explicitly toggled for testing without webcam

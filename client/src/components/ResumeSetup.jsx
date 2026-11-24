@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FileUp, Play, Sparkles, CheckCircle2, Sliders, ArrowRight, BookOpen, Clock, Target, Save, Lock, Layers, LogIn, ShieldAlert } from 'lucide-react';
+import { apiUrl } from '../config/api';
 
 export default function ResumeSetup({ onInterviewStart, user, onRequireAuth }) {
   const [candidateName, setCandidateName] = useState(user?.name || "");
@@ -24,7 +25,7 @@ export default function ResumeSetup({ onInterviewStart, user, onRequireAuth }) {
       if (user.savedResumeText) {
         setResumeText(user.savedResumeText);
         // Automatically parse skills from remembered profile resume
-        fetch('/api/resume/parse', {
+        fetch(apiUrl('/api/resume/parse'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ resumeText: user.savedResumeText, targetRole: user.targetRole || "Candidate" })
@@ -59,7 +60,7 @@ export default function ResumeSetup({ onInterviewStart, user, onRequireAuth }) {
     formData.append('targetRole', targetRole);
 
     try {
-      const res = await fetch('/api/resume/upload', {
+      const res = await fetch(apiUrl('/api/resume/upload'), {
         method: 'POST',
         body: formData
       });
@@ -71,7 +72,7 @@ export default function ResumeSetup({ onInterviewStart, user, onRequireAuth }) {
           setResumeText(data.data.rawText);
           // Automatically save and remember resume in user profile
           if (user?.id) {
-            fetch('/api/auth/resume', {
+            fetch(apiUrl('/api/auth/resume'), {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -92,7 +93,7 @@ export default function ResumeSetup({ onInterviewStart, user, onRequireAuth }) {
   const handleParseResumeText = async () => {
     setIsParsing(true);
     try {
-      const res = await fetch('/api/resume/parse', {
+      const res = await fetch(apiUrl('/api/resume/parse'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ resumeText, targetRole })
@@ -103,7 +104,7 @@ export default function ResumeSetup({ onInterviewStart, user, onRequireAuth }) {
         if (data.data.inferredDomain) setDomain(data.data.inferredDomain);
         // Also auto-save to user profile
         if (user?.id && resumeText) {
-          fetch('/api/auth/resume', {
+          fetch(apiUrl('/api/auth/resume'), {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -127,7 +128,7 @@ export default function ResumeSetup({ onInterviewStart, user, onRequireAuth }) {
       return;
     }
     try {
-      const res = await fetch('/api/auth/resume', {
+      const res = await fetch(apiUrl('/api/auth/resume'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -171,7 +172,7 @@ export default function ResumeSetup({ onInterviewStart, user, onRequireAuth }) {
       const activeUserId = user.id;
       const activeCandidateName = user.name || candidateName || "Candidate";
 
-      const res = await fetch('/api/interview/start', {
+      const res = await fetch(apiUrl('/api/interview/start'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

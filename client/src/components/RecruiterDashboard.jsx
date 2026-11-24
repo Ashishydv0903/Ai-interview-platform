@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Briefcase, Search, Filter, Award, ChevronRight, Eye, CheckCircle2, AlertTriangle, FileText, UserCheck, ShieldAlert, Lock, UserPlus } from 'lucide-react';
+import { apiUrl } from '../config/api';
 
 export default function RecruiterDashboard({ onViewSessionDetail, user, onSwitchToRecruiter }) {
   const [sessions, setSessions] = useState([]);
@@ -18,7 +19,7 @@ export default function RecruiterDashboard({ onViewSessionDetail, user, onSwitch
   const fetchSessions = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch('/api/interviews');
+      const res = await fetch(apiUrl('/api/interviews'));
       const data = await res.json();
       if (data.success) {
         setSessions(data.data);

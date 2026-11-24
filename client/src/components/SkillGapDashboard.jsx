@@ -3,6 +3,7 @@ import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Responsi
 import { Award, BookOpen, CheckCircle2, AlertTriangle, Download, Sparkles, ExternalLink, BrainCircuit, BarChart2, LayoutGrid, ArrowLeft, MessageSquare, Check, HelpCircle, Code2, TrendingUp, TrendingDown, Layers, History, Compass, ArrowUpRight, Minus, ShieldCheck, ShieldAlert, Camera, Eye, Cpu, UserCheck, UserX, AlertCircle, LogOut, Activity, Target } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import html2pdf from 'html2pdf.js';
+import { apiUrl } from '../config/api';
 
 export default function SkillGapDashboard({ sessionData, user, onBackToHistory, onStartNewMock }) {
   const [viewMode, setViewMode] = useState('skillScorecard'); // 'skillScorecard' or 'radar'
@@ -121,7 +122,7 @@ export default function SkillGapDashboard({ sessionData, user, onBackToHistory, 
       try {
         setLoadingPast(true);
         const userId = user?.id || sessionData?.userId;
-        const url = userId ? `/api/interviews?userId=${userId}` : '/api/interviews';
+        const url = apiUrl(userId ? `/api/interviews?userId=${userId}` : '/api/interviews');
         const res = await fetch(url);
         const data = await res.json();
         if (data.success && Array.isArray(data.data)) {

@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Mic, MicOff, Volume2, Timer, Sparkles, CheckCircle2, ChevronRight, HelpCircle, Code, Shield, AlertTriangle, ArrowRight, Zap, Clock, LogOut, ShieldCheck, ShieldAlert, UserX, Camera, CameraOff } from 'lucide-react';
 import OpenCVProctoringWidget from './OpenCVProctoringWidget';
 import CodeSandboxWidget from './CodeSandboxWidget';
+import { apiUrl } from '../config/api';
 
 export default function AdaptiveInterviewPortal({ sessionData, onAnswerSubmit, onFinishSession }) {
   const [currentQ, setCurrentQ] = useState(sessionData?.currentQuestion);
@@ -15,8 +16,8 @@ export default function AdaptiveInterviewPortal({ sessionData, onAnswerSubmit, o
   const [showCodeSandbox, setShowCodeSandbox] = useState(false);
   const [showHint, setShowHint] = useState(false);
   
-  // Timer count-up & remaining time
-  const [timerSeconds, setTimerSeconds] = useState(0);
+  const [questionSeconds, setQuestionSeconds] = useState(0);
+  const [sessionSeconds, setSessionSeconds] = useState(0);
   const [isListening, setIsListening] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [proctoringData, setProctoringData] = useState(null);
@@ -33,6 +34,18 @@ export default function AdaptiveInterviewPortal({ sessionData, onAnswerSubmit, o
   const recognitionRef = useRef(null);
   const isListeningRef = useRef(false);
   const baseAnswerRef = useRef('');
+  const answerRef = useRef('');
+  const sessionStartRef = useRef(Date.now());
+  const timeUpRef = useRef(false);
+  const proctoringRef = useRef(null);
+  const onFinishRef = useRef(onFinishSession);
+  proctoringRef.current = proctoringData;
+  onFinishRef.current = onFinishSession;
+  answerRef.current = userAnswer;
+
+  const handleProctoringUpdate = useCallback((data) => {
+    setProctoringData(data);
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -68,13 +81,18 @@ export default function AdaptiveInterviewPortal({ sessionData, onAnswerSubmit, o
     }
   }, [sessionData]);
 
-  // Overall Session Countdown / Count-up Timer
+  // Session clock keeps running across questions. Question clock resets with each prompt.
   useEffect(() => {
     const interval = setInterval(() => {
-      setTimerSeconds(prev => prev + 1);
+      setSessionSeconds(Math.floor((Date.now() - sessionStartRef.current) / 1000));
+      setQuestionSeconds(prev => prev + 1);
     }, 1000);
     return () => clearInterval(interval);
-  }, [currentQ]);
+  }, []);
+
+  useEffect(() => {
+    setQuestionSeconds(0);
+  }, [currentQ?.id, questionIndex]);
 
   // Web Speech API Voice Dictation (Robust multi-browser handler with live stream concatenation)
   const toggleVoiceInput = () => {
@@ -157,7 +175,7 @@ export default function AdaptiveInterviewPortal({ sessionData, onAnswerSubmit, o
         // If candidate is still speaking, auto-restart unless explicitly turned off
         if (isListeningRef.current) {
           try {
-            baseAnswerRef.current = userAnswer;
+            baseAnswerRef.current = answerRef.current;
             recognition.start();
           } catch (e) {
             isListeningRef.current = false;
@@ -189,7 +207,6 @@ export default function AdaptiveInterviewPortal({ sessionData, onAnswerSubmit, o
     }
   };
 
-  /* >>> CHANGED: START — robust answer submission and next-question validation. */
   const handleSubmit = async () => {
     if (!isCameraOn) {
       alert("Camera Required: You must turn on your webcam to submit your answer.");
@@ -210,13 +227,13 @@ export default function AdaptiveInterviewPortal({ sessionData, onAnswerSubmit, o
 
     setIsSubmitting(true);
     try {
-      const res = await fetch('/api/interview/evaluate-next', {
+      const res = await fetch(apiUrl('/api/interview/evaluate-next'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           sessionId: sessionData.sessionId || sessionData.id,
           answer: userAnswer,
-          timeSpentSeconds: timerSeconds,
+          timeSpentSeconds: questionSeconds,
           isCodeSandboxAnswer: !!attachedCode,
           codeSnippet: attachedCode,
           proctoringSummary: proctoringData
@@ -254,7 +271,7 @@ export default function AdaptiveInterviewPortal({ sessionData, onAnswerSubmit, o
         };
 
         // Fire-and-forget background sync if needed, never block UI transition
-        fetch('/api/interview/finalize', {
+        fetch(apiUrl('/api/interview/finalize'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -286,7 +303,7 @@ export default function AdaptiveInterviewPortal({ sessionData, onAnswerSubmit, o
         setAttachedCode("");
         setShowCodeSandbox(false);
         setShowHint(false);
-        setTimerSeconds(0);
+        setQuestionSeconds(0);
         if (onAnswerSubmit) onAnswerSubmit(data.data);
       }
     } catch (err) {
@@ -330,7 +347,7 @@ export default function AdaptiveInterviewPortal({ sessionData, onAnswerSubmit, o
         flags: [exitRecord, ...((proctoringData && proctoringData.flags) || [])]
       };
 
-      const finRes = await fetch('/api/interview/finalize', {
+      const finRes = await fetch(apiUrl('/api/interview/finalize'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -362,7 +379,57 @@ export default function AdaptiveInterviewPortal({ sessionData, onAnswerSubmit, o
     }
   };
 
-  // <<< CHANGED: END — robust answer submission and next-question validation.
+  const releaseInterviewHardware = () => {
+    if (proctoringRef.current?.stopCamera) {
+      try { proctoringRef.current.stopCamera(); } catch (e) {}
+    }
+    if (typeof window !== 'undefined' && window.__activeInterviewMediaStream) {
+      window.__activeInterviewMediaStream.getTracks().forEach(t => {
+        try { t.stop(); } catch (e) {}
+      });
+      window.__activeInterviewMediaStream = null;
+    }
+    if (recognitionRef.current) {
+      try { recognitionRef.current.stop(); } catch (e) {}
+    }
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+  };
+
+  useEffect(() => {
+    const limit = timeLimitMinutes * 60;
+    if (sessionSeconds < limit || timeUpRef.current) return;
+    timeUpRef.current = true;
+
+    (async () => {
+      releaseInterviewHardware();
+      try {
+        const finRes = await fetch(apiUrl('/api/interview/finalize'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sessionId: sessionData.sessionId || sessionData.id,
+            proctoringSummary: proctoringRef.current,
+            isEarlyExit: true
+          })
+        });
+        const finData = await finRes.json().catch(() => ({}));
+        if (finData?.success && onFinishRef.current) {
+          onFinishRef.current({
+            session: {
+              ...finData.data.session,
+              finalReport: finData.data.finalReport,
+              proctoringSummary: proctoringRef.current
+            },
+            finalReport: finData.data.finalReport
+          });
+        }
+      } catch (err) {
+        console.error('Could not close the session when time ran out:', err);
+      }
+    })();
+  }, [sessionSeconds, timeLimitMinutes, sessionData]);
 
   const difficultyColors = {
     Easy: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
@@ -370,6 +437,29 @@ export default function AdaptiveInterviewPortal({ sessionData, onAnswerSubmit, o
     Hard: "bg-rose-500/20 text-rose-300 border-rose-500/30",
     Expert: "bg-[#5CDB94]/20 text-[#5CDB94] border-[#5CDB94]/30"
   };
+
+  const interviewer = (() => {
+    const domain = `${currentQ.domain || ''} ${currentQ.topic || ''}`.toLowerCase();
+    if (domain.includes('aptitude') || domain.includes('reason')) {
+      return { initial: 'A', name: 'Ananya, aptitude round', line: 'Write the steps. The final number alone is not enough.' };
+    }
+    if (domain.includes('business') || domain.includes('product')) {
+      return { initial: 'R', name: 'Rahul, product round', line: 'Say what you would trade off, then what you would pick.' };
+    }
+    if (domain.includes('english') || domain.includes('communication')) {
+      return { initial: 'M', name: 'Meera, communication round', line: 'One real example is better than a definition.' };
+    }
+    if (domain.includes('finance') || domain.includes('account')) {
+      return { initial: 'K', name: 'Kabir, finance round', line: 'Name the statement or ratio you are using.' };
+    }
+    if (domain.includes('data') || domain.includes('machine')) {
+      return { initial: 'P', name: 'Priya, data round', line: 'Say what you would measure, and why that metric.' };
+    }
+    if (domain.includes('backend') || domain.includes('node') || domain.includes('sql')) {
+      return { initial: 'A', name: 'Arjun, backend round', line: 'Mention one way this fails, not only the happy path.' };
+    }
+    return { initial: 'S', name: 'Sana, frontend round', line: 'Walk through what the browser does, not just the API name.' };
+  })();
 
   if (!currentQ) {
     return (
@@ -424,12 +514,19 @@ export default function AdaptiveInterviewPortal({ sessionData, onAnswerSubmit, o
             title="Read Question Aloud"
           >
             <Volume2 className="w-3.5 h-3.5 text-[#5CDB94]" />
-            AI Voice
+            Read aloud
           </button>
 
-          <div className="flex items-center gap-1.5 bg-[#071B2E] px-3 py-1.5 rounded-xl border border-[#1C476E] text-xs font-mono text-[#5CDB94]">
-            <Clock className="w-3.5 h-3.5 text-[#5CDB94]" />
-            <span>{Math.floor(timerSeconds / 60)}:{(timerSeconds % 60).toString().padStart(2, '0')} / {timeLimitMinutes}m</span>
+          <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-mono ${
+            timeLimitMinutes * 60 - sessionSeconds <= 60
+              ? 'bg-rose-950/80 border-rose-500/50 text-rose-200'
+              : 'bg-[#071B2E] border-[#1C476E] text-[#5CDB94]'
+          }`}>
+            <Clock className="w-3.5 h-3.5" />
+            <span>
+              {Math.floor(Math.max(0, timeLimitMinutes * 60 - sessionSeconds) / 60)}:
+              {(Math.max(0, timeLimitMinutes * 60 - sessionSeconds) % 60).toString().padStart(2, '0')} left
+            </span>
           </div>
 
           {/* Persistent Exit Interview Button */}
@@ -452,11 +549,11 @@ export default function AdaptiveInterviewPortal({ sessionData, onAnswerSubmit, o
           <div className="bg-[#071B2E] p-3.5 rounded-xl border border-[#1C476E] flex items-center justify-between gap-3 text-xs">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-full bg-[#5CDB94] text-[#0B2540] font-bold flex items-center justify-center text-xs">
-                S
+                {interviewer.initial}
               </div>
               <div>
-                <span className="font-bold text-white block text-xs">Sarah (Senior Engineering Lead)</span>
-                <span className="text-[11px] text-slate-300">"Take your time to structure your answer and cite real-world trade-offs."</span>
+                <span className="font-bold text-white block text-xs">{interviewer.name}</span>
+                <span className="text-[11px] text-slate-300">{interviewer.line}</span>
               </div>
             </div>
             <span className="hidden sm:inline-block text-[10px] px-2.5 py-0.5 rounded-full bg-[#5CDB94]/20 text-[#5CDB94] border border-[#5CDB94]/30 font-mono font-bold">
@@ -719,7 +816,7 @@ export default function AdaptiveInterviewPortal({ sessionData, onAnswerSubmit, o
           <OpenCVProctoringWidget
             isSpeaking={isListening || userAnswer.length > 20}
             fillerCount={0}
-            onProctoringUpdate={data => setProctoringData(data)}
+            onProctoringUpdate={handleProctoringUpdate}
           />
 
           <div className="glass-card rounded-2xl p-4 border border-[#1C476E] space-y-3">

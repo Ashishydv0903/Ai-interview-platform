@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { History, Search, Filter, Award, ChevronRight, Eye, Calendar, Clock, CheckCircle2, AlertTriangle, BookOpen, Sparkles, ArrowRight, RotateCcw, Target } from 'lucide-react';
+import { apiUrl } from '../config/api';
 
 export default function ResultsHistoryPortal({ onViewSessionDetail, user, onStartNewMock }) {
   const [sessions, setSessions] = useState([]);
@@ -14,7 +15,7 @@ export default function ResultsHistoryPortal({ onViewSessionDetail, user, onStar
   const fetchHistory = async () => {
     setIsLoading(true);
     try {
-      const url = user?.id ? `/api/interviews?userId=${encodeURIComponent(user.id)}` : '/api/interviews';
+      const url = apiUrl(user?.id ? `/api/interviews?userId=${encodeURIComponent(user.id)}` : '/api/interviews');
       const res = await fetch(url);
       const data = await res.json();
       if (data.success) {

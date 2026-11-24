@@ -5,6 +5,7 @@ import AdaptiveInterviewPortal from './components/AdaptiveInterviewPortal';
 import SkillGapDashboard from './components/SkillGapDashboard';
 import ResultsHistoryPortal from './components/ResultsHistoryPortal';
 import AuthModal from './components/AuthModal';
+import { apiUrl } from './config/api';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('setup');
@@ -20,7 +21,7 @@ export default function App() {
         const parsed = JSON.parse(savedUser);
         setUser(parsed);
         if (token) {
-          fetch('/api/auth/verify', {
+          fetch(apiUrl('/api/auth/verify'), {
             headers: { 'Authorization': `Bearer ${token}` }
           })
             .then(res => res.json())
