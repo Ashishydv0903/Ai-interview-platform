@@ -217,7 +217,12 @@ exports.evaluateAndNext = async (req, res) => {
 
     const fullTextAnswer = isCodeSandboxAnswer ? `${answer || ''}\n[Code snippet]: ${codeSnippet || ''}` : answer;
 
-    let geminiEval = await evaluateAnswerWithGemini(currentQ.question, fullTextAnswer);
+    let geminiEval = null;
+    try {
+      geminiEval = await evaluateAnswerWithGemini(currentQ.question, fullTextAnswer);
+    } catch (evalErr) {
+      console.warn("Gemini evaluation error handled gracefully:", evalErr.message);
+    }
     
     let semanticResult;
     if (geminiEval && geminiEval.score) {

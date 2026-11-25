@@ -240,7 +240,19 @@ Return ONLY a valid JSON object:
 `;
 
   try {
-    const result = await withTimeout(model.generateContent(prompt), 4500);
+    let result;
+    try {
+      result = await withTimeout(model.generateContent(prompt), 10000);
+    } catch (firstErr) {
+      const msg = firstErr?.message || '';
+      if (msg.includes('429') || msg.includes('Quota') || msg.includes('ResourceExhausted') || msg.includes('rate-limit') || msg.includes('fetch failed')) {
+        console.warn("⚠️ Transient Gemini evaluation rate-limit. Retrying after 1.5s...");
+        await new Promise(r => setTimeout(r, 1500));
+        result = await withTimeout(model.generateContent(prompt), 10000);
+      } else {
+        throw firstErr;
+      }
+    }
     const text = result.response.text();
     const parsed = extractJson(text);
     if (parsed && typeof parsed.score === 'number') {
@@ -248,7 +260,6 @@ Return ONLY a valid JSON object:
     }
     return null;
   } catch (err) {
-    markQuotaExceeded(err.message);
     console.warn("⚠️ Gemini Answer Evaluation Notice:", err.message, "-> Using semantic NLP engine fallback.");
     return null;
   }

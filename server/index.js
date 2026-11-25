@@ -46,6 +46,29 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// Diagnostic Gemini Status Endpoint
+app.get('/api/gemini-status', async (req, res) => {
+  const apiKey = (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || "").trim();
+  const info = {
+    hasKey: !!apiKey,
+    keyLength: apiKey.length,
+    keyPrefix: apiKey ? apiKey.substring(0, 6) + '...' + apiKey.slice(-4) : 'none',
+    timestamp: new Date().toISOString()
+  };
+  if (!apiKey) {
+    return res.json({ ...info, status: 'NO_KEY', message: 'GEMINI_API_KEY is missing from environment variables.' });
+  }
+  try {
+    const { GoogleGenerativeAI } = require('@google/generative-ai');
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const result = await model.generateContent('ping');
+    return res.json({ ...info, status: 'CONNECTED', response: result.response.text().trim() });
+  } catch (err) {
+    return res.status(500).json({ ...info, status: 'ERROR', error: err.message });
+  }
+});
+
 // Auth Routes
 app.post('/api/auth/register', authController.register);
 app.post('/api/auth/login', authController.login);
