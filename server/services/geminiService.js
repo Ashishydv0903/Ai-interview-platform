@@ -28,16 +28,15 @@ function extractJson(text) {
 }
 
 // Dynamic Gemini API Model Provider
-const getGeminiModel = (config = {}) => {
+const getGeminiModel = (config = {}, modelName = "gemini-2.5-flash") => {
   const apiKey = (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || "").trim();
   if (!apiKey || apiKey === "your_gemini_api_key_here") {
     return null;
   }
   try {
     const genAI = new GoogleGenerativeAI(apiKey);
-    // Use gemini-2.5-flash with structured JSON output for ultra-fast, reliable questions & evaluations
     return genAI.getGenerativeModel({
-      model: "gemini-2.5-flash",
+      model: modelName,
       generationConfig: {
         responseMimeType: "application/json",
         ...config
@@ -74,11 +73,6 @@ const generateQuestionsWithGemini = async (options = {}, legacyDomain = "Fronten
     domain = options.domain || "Frontend";
     customSubject = options.customSubject || null;
     totalQuestions = parseInt(options.totalQuestions) || 5;
-  }
-
-  const model = getGeminiModel({ maxOutputTokens: 2500 });
-  if (!model) {
-    return null; // Fallback to curated question bank
   }
 
   const isResumeMode = mode === "RESUME_BASED" && resumeText && resumeText.trim().length > 25;
@@ -173,42 +167,49 @@ Rules:
 `;
   }
 
-  try {
-    let result;
+  // Model fallback chain: try gemini-2.5-flash first, then gemini-flash-lite-latest
+  const candidateModels = ["gemini-2.5-flash", "gemini-flash-lite-latest"];
+  for (const mName of candidateModels) {
+    const model = getGeminiModel({ maxOutputTokens: 2500 }, mName);
+    if (!model) continue;
+
     try {
-      result = await withTimeout(model.generateContent(prompt), 14000);
-    } catch (firstErr) {
-      const msg = firstErr?.message || '';
-      if (msg.includes('429') || msg.includes('Quota') || msg.includes('ResourceExhausted') || msg.includes('rate-limit') || msg.includes('fetch failed')) {
-        console.warn("⚠️ Transient Gemini rate-limit/latency. Retrying once after 2s...");
-        await new Promise(r => setTimeout(r, 2000));
+      let result;
+      try {
         result = await withTimeout(model.generateContent(prompt), 14000);
-      } else {
-        throw firstErr;
+      } catch (firstErr) {
+        const msg = firstErr?.message || '';
+        if (msg.includes('429') || msg.includes('Quota')) {
+          throw firstErr; // Move to next model
+        }
+        if (msg.includes('rate-limit') || msg.includes('fetch failed') || msg.includes('503')) {
+          console.warn(`⚠️ Transient latency on ${mName}. Retrying once after 2s...`);
+          await new Promise(r => setTimeout(r, 2000));
+          result = await withTimeout(model.generateContent(prompt), 14000);
+        } else {
+          throw firstErr;
+        }
       }
+      const text = result.response.text();
+      const parsed = extractJson(text);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        console.log(`✅ [Gemini] Successfully generated ${parsed.length} tailored interview questions using ${mName}${isResumeMode ? ' (Mode: RESUME_BASED)' : ` (Mode: ROLE_BASED - ${domain})`}${hasJD ? ' (Aligned with Job Description)' : ''}.`);
+        return parsed;
+      }
+    } catch (err) {
+      console.warn(`⚠️ Gemini model ${mName} notice:`, err.message.substring(0, 100), `-> Trying next candidate model.`);
     }
-    const text = result.response.text();
-    const parsed = extractJson(text);
-    if (Array.isArray(parsed) && parsed.length > 0) {
-      console.log(`✅ [Gemini] Successfully generated ${parsed.length} tailored interview questions${isResumeMode ? ' (Mode: RESUME_BASED)' : ` (Mode: ROLE_BASED - ${domain})`}${hasJD ? ' (Aligned with Job Description)' : ''}.`);
-      return parsed;
-    }
-    return null;
-  } catch (err) {
-    console.warn("⚠️ Gemini Question Generation Notice:", err.message, "-> Using curated Question Bank.");
-    return null;
   }
+
+  console.warn("⚠️ All Gemini models unavailable or quota-exceeded -> Using curated Question Bank.");
+  return null;
+};
 };
 
 /**
  * Evaluate answer using Gemini LLM with strict grading rules against random/gibberish answers
  */
 const evaluateAnswerWithGemini = async (question, answer) => {
-  const model = getGeminiModel({ maxOutputTokens: 500, temperature: 0.2 });
-  if (!model) {
-    return null; // Fallback to semantic NLP engine
-  }
-
   const prompt = `
 You are a senior, rigorous interview evaluator evaluating a candidate's answer.
 
@@ -239,30 +240,40 @@ Return ONLY a valid JSON object:
 }
 `;
 
-  try {
-    let result;
+  const candidateModels = ["gemini-2.5-flash", "gemini-flash-lite-latest"];
+  for (const mName of candidateModels) {
+    const model = getGeminiModel({ maxOutputTokens: 500, temperature: 0.2 }, mName);
+    if (!model) continue;
+
     try {
-      result = await withTimeout(model.generateContent(prompt), 10000);
-    } catch (firstErr) {
-      const msg = firstErr?.message || '';
-      if (msg.includes('429') || msg.includes('Quota') || msg.includes('ResourceExhausted') || msg.includes('rate-limit') || msg.includes('fetch failed')) {
-        console.warn("⚠️ Transient Gemini evaluation rate-limit. Retrying after 1.5s...");
-        await new Promise(r => setTimeout(r, 1500));
+      let result;
+      try {
         result = await withTimeout(model.generateContent(prompt), 10000);
-      } else {
-        throw firstErr;
+      } catch (firstErr) {
+        const msg = firstErr?.message || '';
+        if (msg.includes('429') || msg.includes('Quota')) {
+          throw firstErr; // Move to next model
+        }
+        if (msg.includes('rate-limit') || msg.includes('fetch failed') || msg.includes('503')) {
+          console.warn(`⚠️ Transient latency evaluating with ${mName}. Retrying after 1.5s...`);
+          await new Promise(r => setTimeout(r, 1500));
+          result = await withTimeout(model.generateContent(prompt), 10000);
+        } else {
+          throw firstErr;
+        }
       }
+      const text = result.response.text();
+      const parsed = extractJson(text);
+      if (parsed && typeof parsed.score === 'number') {
+        return parsed;
+      }
+    } catch (err) {
+      console.warn(`⚠️ Gemini evaluation notice (${mName}):`, err.message.substring(0, 90));
     }
-    const text = result.response.text();
-    const parsed = extractJson(text);
-    if (parsed && typeof parsed.score === 'number') {
-      return parsed;
-    }
-    return null;
-  } catch (err) {
-    console.warn("⚠️ Gemini Answer Evaluation Notice:", err.message, "-> Using semantic NLP engine fallback.");
-    return null;
   }
+
+  console.warn("⚠️ Gemini evaluation unavailable -> Using semantic NLP engine fallback.");
+  return null;
 };
 
 module.exports = {
