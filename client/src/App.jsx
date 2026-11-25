@@ -14,6 +14,9 @@ export default function App() {
   const [isAuthOpen, setIsAuthOpen] = useState(false);
 
   useEffect(() => {
+    // Immediately pre-warm Render free tier backend container so login/start is instant
+    fetch(apiUrl('/api/health')).catch(() => {});
+
     const savedUser = localStorage.getItem('adaptiveai_user');
     const token = localStorage.getItem('adaptiveai_token');
     if (savedUser) {

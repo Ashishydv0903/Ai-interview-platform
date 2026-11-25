@@ -217,11 +217,22 @@ exports.evaluateAndNext = async (req, res) => {
 
     const fullTextAnswer = isCodeSandboxAnswer ? `${answer || ''}\n[Code snippet]: ${codeSnippet || ''}` : answer;
 
+    // Fast-path for empty, ultra-short, or obvious gibberish keyboard-mashing (evaluates in 2ms without burning LLM latency or quota)
+    const trimmedAnswer = (fullTextAnswer || "").trim();
+    const answerWords = trimmedAnswer.split(/\s+/).filter(Boolean);
+    const isObviousGibberishOrTooShort = 
+      trimmedAnswer.length < 12 || 
+      answerWords.length < 3 || 
+      /(.)\1{4,}/.test(trimmedAnswer) || 
+      (answerWords.length <= 2 && trimmedAnswer.length > 8 && !/[aeiouy]{2,}/i.test(trimmedAnswer));
+
     let geminiEval = null;
-    try {
-      geminiEval = await evaluateAnswerWithGemini(currentQ.question, fullTextAnswer);
-    } catch (evalErr) {
-      console.warn("Gemini evaluation error handled gracefully:", evalErr.message);
+    if (!isObviousGibberishOrTooShort) {
+      try {
+        geminiEval = await evaluateAnswerWithGemini(currentQ.question, fullTextAnswer);
+      } catch (evalErr) {
+        console.warn("Gemini evaluation error handled gracefully:", evalErr.message);
+      }
     }
     
     let semanticResult;

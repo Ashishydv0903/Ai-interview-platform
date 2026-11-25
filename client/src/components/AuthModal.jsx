@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { LogIn, UserPlus, X, Lock, Mail, User, GraduationCap, Sparkles } from 'lucide-react';
 import { apiUrl } from '../config/api';
 
@@ -9,6 +9,17 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isWakingUp, setIsWakingUp] = useState(false);
+
+  useEffect(() => {
+    let timer;
+    if (loading) {
+      timer = setTimeout(() => setIsWakingUp(true), 2500);
+    } else {
+      setIsWakingUp(false);
+    }
+    return () => clearTimeout(timer);
+  }, [loading]);
 
   if (!isOpen) return null;
 
@@ -66,6 +77,13 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
         {error && (
           <div className="mb-4 p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-xs text-rose-300">
             {error}
+          </div>
+        )}
+
+        {isWakingUp && (
+          <div className="mb-4 p-3 bg-blue-500/15 border border-blue-500/40 rounded-xl text-xs text-blue-300 flex items-center gap-2 animate-pulse">
+            <Sparkles className="w-4 h-4 text-blue-400 shrink-0" />
+            <span>Server is spinning up from standby (Render free tier cold start)... Almost ready!</span>
           </div>
         )}
 
