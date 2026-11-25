@@ -204,7 +204,6 @@ Rules:
   console.warn("⚠️ All Gemini models unavailable or quota-exceeded -> Using curated Question Bank.");
   return null;
 };
-};
 
 /**
  * Evaluate answer using Gemini LLM with strict grading rules against random/gibberish answers
